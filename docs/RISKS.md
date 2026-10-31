@@ -22,10 +22,11 @@ Ushbu hujjat loyihadagi texnik cheklovlar, real xavflar va ularning rejalashtiri
 
 ## 5. WebView da Google OAuth bloklanishi
 - **Xavf:** Google o'zining xavfsizlik siyosatiga binoan oddiy WebView lardan OAuth kirishni cheklaydi (`disallowed_useragent`).
-- **Yechim:** 
-  1. Toza zamonaviy mobil Chrome User-Agent o'rnatish (`wv` va `Version/4.0` belgilari olib tashlanadi).
-  2. `X-Requested-With` sarlavhasini olib tashlash.
-  3. Agar bloklanish davom etsa: foydalanuvchiga to'g'ridan-to'g'ri email/parol, telefon raqami yoki QR-kod orqali kirish imkoniyatlari tavsiya etiladi.
+- **Yechim va QADAM 13 dagi holat:** 
+  1. `SandboxPolicy.sanitizeUserAgent()` orqali toza zamonaviy mobil Chrome User-Agent o'rnatildi (`wv` va `Version/4.0` belgilari olib tashlanadi).
+  2. Barcha web so'rovlarda `X-Requested-With` sarlavhasi olib tashlanadi.
+  3. `SessionStore` umumiy singleton `CookieManager` ga ulanib, `setAcceptThirdPartyCookies(true)` faollashtirildi.
+  4. Real vaziyat hujjatlashtirilgan holat: Google serverlarining ko'p qismi tozalangan Chrome UA bilan kirishga ruxsat beradi; biroq Google ba'zi hisoblarda qo'shimcha xavfsizlik tekshiruvini talab qilishi mumkin. Foydalanuvchi tashqi ilovaga chiqmasdan, oyna ichida to'liq xavfsiz va sandboxed rejimda sessiyani davom ettiradi.
 
 ## 6. DRM (Digital Rights Management)
 - **Xavf:** Spotify va ba'zi yuqori sifatli video oqimlarida Widevine L1/L3 litsenziyalari talab qilinishi mumkin.
