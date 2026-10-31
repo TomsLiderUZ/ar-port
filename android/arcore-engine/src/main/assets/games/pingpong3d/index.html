@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>3D Stol Tennisi — AR Port</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+    body {
+      background: radial-gradient(circle at center, #141E30 0%, #080A10 100%);
+      color: #fff;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", Inter, sans-serif;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      width: 100vw;
+      height: 100vh;
+    }
+    #game-container {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      max-width: 1280px;
+      max-height: 720px;
+      aspect-ratio: 16 / 9;
+      display: flex;
+      flex-direction: column;
+      background: transparent;
+    }
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      cursor: crosshair;
+    }
+    .liquid-glass {
+      background: rgba(28, 29, 36, 0.72);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      border-radius: 20px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+    }
+    #hud-top {
+      position: absolute;
+      top: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 10px 28px;
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      pointer-events: none;
+    }
+    .score-badge {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 28px;
+      font-weight: 700;
+    }
+    .score-player { color: #64D2FF; }
+    .score-bot { color: #FF453A; }
+    .score-sep { color: #8E8E93; font-size: 22px; }
+    #hud-difficulty {
+      position: absolute;
+      top: 16px;
+      left: 16px;
+      display: flex;
+      gap: 8px;
+    }
+    .btn-glass {
+      background: rgba(36, 42, 54, 0.65);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 14px;
+      color: #fff;
+      padding: 8px 16px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .btn-glass:active, .btn-glass.active {
+      background: #0A84FF;
+      border-color: #64D2FF;
+      box-shadow: 0 0 15px rgba(10, 132, 255, 0.5);
+    }
+    #hud-actions {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      display: flex;
+      gap: 8px;
+    }
+    #btn-serve {
+      position: absolute;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 14px 36px;
+      font-size: 18px;
+      font-weight: 700;
+      background: #0A84FF;
+      border: 1px solid #64D2FF;
+      border-radius: 28px;
+      box-shadow: 0 4px 20px rgba(10, 132, 255, 0.4);
+      display: none;
+    }
+    #status-toast {
+      position: absolute;
+      top: 85px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 15px;
+      color: #E5E5EA;
+      background: rgba(0, 0, 0, 0.45);
+      padding: 6px 18px;
+      border-radius: 14px;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="game-container">
+    <canvas id="tennisCanvas" width="1280" height="720"></canvas>
+
+    <div id="hud-top" class="liquid-glass">
+      <div class="score-badge">
+        <span class="score-player" id="p-score">0</span>
+        <span class="score-sep">:</span>
+        <span class="score-bot" id="b-score">0</span>
+      </div>
+      <div id="server-indicator" style="font-size: 14px; color: #FFD60A; font-weight: 600;">🏓 Sizda</div>
+    </div>
+
+    <div id="status-toast">To'pni kiritish uchun bosing</div>
+
+    <div id="hud-difficulty">
+      <button class="btn-glass" id="btn-oson" onclick="setDiff('OSON')">Oson</button>
+      <button class="btn-glass active" id="btn-orta" onclick="setDiff('ORTA')">O'rta</button>
+      <button class="btn-glass" id="btn-qiyin" onclick="setDiff('QIYIN')">Qiyin</button>
+    </div>
+
+    <div id="hud-actions">
+      <button class="btn-glass" id="btn-sound" onclick="toggleAudio()">🔊</button>
+      <button class="btn-glass" onclick="resetMatch()">🔄 Qayta</button>
+    </div>
+
+    <button id="btn-serve" class="btn-glass" onclick="serve()">🏓 To'pni Kiritish (Serve)</button>
+  </div>
+
+  <script>
+    // Web Audio Synthesizer
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    let audioCtx = null;
+    let audioEnabled = true;
+
+    function playTone(freq, type, duration, slideFreq) {
+      if (!audioEnabled) return;
+      try {
+        if (!audioCtx) audioCtx = new AudioCtx();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        if (slideFreq) {
+          osc.frequency.exponentialRampToValueAtTime(slideFreq, audioCtx.currentTime + duration);
+        }
+        gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+      } catch (e) {}
+    }
+
+    function toggleAudio() {
+      audioEnabled = !audioEnabled;
+      document.getElementById('btn-sound').innerText = audioEnabled ? '🔊' : '🔇';
+    }
+
+    // 3D Table Tennis Simulation & Canvas
+    const canvas = document.getElementById('tennisCanvas');
+    const ctx = canvas.getContext('2d');
+
+    const TABLE_W = 1.525;
+    const TABLE_HALF_W = TABLE_W / 2;
+    const TABLE_Z_NEAR = 1.13;
+    const TABLE_Z_FAR = 3.87;
+    const TABLE_Z_NET = 2.50;
+    const NET_H = 0.1525;
+
+    let difficulty = 'ORTA';
+    let gameState = 'SERVE_WAIT';
+    let server = 'PLAYER';
+    let pScore = 0;
+    let bScore = 0;
+    let bestScore = parseInt(localStorage.getItem('ar_tennis_best') || '0', 10);
+
+    // Ball 3D state
+    let bx = 0, by = 0.35, bz = 1.0;
+    let bvx = 0, bvy = 0, bvz = 0;
+    let spinX = 0, spinY = 0;
+    let lastHitter = null;
+    let pBounces = 0, bBounces = 0;
+
+    // Paddle positions
+    let px = 0, py = 0.25, pz = 0.85;
+    let botX = 0, botY = 0.25, botZ = 4.15;
+    let botReactionTimer = 0;
+    let trail = [];
+
+    function project3D(x, y, z) {
+      const dCam = 1.35;
+      const focal = 840;
+      const scale = focal / (Math.max(0.1, z) + dCam);
+      const sx = (canvas.width / 2) + (x * scale);
+      const sy = (canvas.height / 2) + 140 - (y * scale);
+      return { x: sx, y: sy, scale: scale };
+    }
+
+    function setDiff(d) {
+      difficulty = d;
+      document.querySelectorAll('#hud-difficulty .btn-glass').forEach(b => b.classList.remove('active'));
+      document.getElementById('btn-' + d.toLowerCase()).classList.add('active');
+      playTone(900, 'sine', 0.05);
+    }
+
+    function serve() {
+      if (gameState !== 'SERVE_WAIT') return;
+      lastHitter = server;
+      pBounces = 0;
+      bBounces = 0;
+      gameState = 'RALLY';
+      document.getElementById('btn-serve').style.display = 'none';
+
+      if (server === 'PLAYER') {
+        bx = px * 0.8; by = py + 0.15; bz = pz + 0.15;
+        bvx = (Math.random() - 0.5) * 0.6;
+        bvy = 1.6;
+        bvz = 4.6;
+      } else {
+        bx = botX * 0.8; by = botY + 0.15; bz = botZ - 0.15;
+        bvx = (Math.random() - 0.5) * 0.8;
+        bvy = 1.6;
+        bvz = -4.5;
+      }
+      playTone(600, 'sine', 0.08, 300);
+      document.getElementById('status-toast').innerText = "Ralli boshlandi!";
+    }
+
+    function resetMatch() {
+      pScore = 0;
+      bScore = 0;
+      server = 'PLAYER';
+      gameState = 'SERVE_WAIT';
+      updateScoreUI();
+      resetBall();
+    }
+
+    function resetBall() {
+      trail = [];
+      pBounces = 0;
+      bBounces = 0;
+      bvx = 0; bvy = 0; bvz = 0;
+      if (server === 'PLAYER') {
+        bx = px * 0.8; by = 0.35; bz = pz + 0.15;
+        document.getElementById('btn-serve').style.display = 'block';
+        document.getElementById('status-toast').innerText = "To'pni kiritish uchun bosing";
+      } else {
+        bx = botX * 0.8; by = 0.35; bz = botZ - 0.15;
+        document.getElementById('btn-serve').style.display = 'none';
+        document.getElementById('status-toast').innerText = "Bot to'p kiritmoqda...";
+        botReactionTimer = 0;
+      }
+      document.getElementById('server-indicator').innerText = server === 'PLAYER' ? '🏓 Sizda' : '🏓 Botda';
+    }
+
+    function updateScoreUI() {
+      document.getElementById('p-score').innerText = pScore;
+      document.getElementById('b-score').innerText = bScore;
+    }
+
+    function awardPoint(scorer, reason) {
+      gameState = 'POINT_SCORED';
+      if (scorer === 'PLAYER') {
+        pScore++;
+        playTone(523, 'sine', 0.25, 784);
+        document.getElementById('status-toast').innerText = `Ochko Sizga! (${reason}) 🎉`;
+      } else {
+        bScore++;
+        playTone(220, 'sawtooth', 0.25, 110);
+        document.getElementById('status-toast').innerText = `Ochko Botga! (${reason}) ❌`;
+      }
+      updateScoreUI();
+
+      if ((pScore >= 11 || bScore >= 11) && Math.abs(pScore - bScore) >= 2) {
+        gameState = 'GAME_OVER';
+        document.getElementById('status-toast').innerText = pScore > bScore ? "🏆 G'ALABA QOZONDINGIZ!" : "Bot g'alaba qozondi!";
+        return;
+      }
+
+      const total = pScore + bScore;
+      const deuce = (pScore >= 10 && bScore >= 10);
+      server = (Math.floor(total / (deuce ? 1 : 2)) % 2 === 0) ? 'PLAYER' : 'BOT';
+      setTimeout(() => {
+        gameState = 'SERVE_WAIT';
+        resetBall();
+      }, 1000);
+    }
+
+    // Input Events
+    function handlePointer(u, v) {
+      px = (u - 0.5) * 2.3;
+      py = ((1.0 - v) - 0.35) * 1.5;
+    }
+
+    canvas.addEventListener('mousemove', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const u = (e.clientX - rect.left) / rect.width;
+      const v = 1.0 - ((e.clientY - rect.top) / rect.height);
+      handlePointer(u, v);
+    });
+
+    canvas.addEventListener('click', () => {
+      if (gameState === 'SERVE_WAIT' && server === 'PLAYER') {
+        serve();
+      }
+    });
+
+    // AR Spatial Gesture Integration Hook
+    window.onArGesture = function(type) {
+      if (type === 'TAP' || type === 'PINCH') {
+        if (gameState === 'SERVE_WAIT' && server === 'PLAYER') {
+          serve();
+        }
+      } else if (type === 'SWIPE_LEFT') {
+        setDiff('OSON');
+      } else if (type === 'SWIPE_RIGHT') {
+        setDiff('QIYIN');
+      }
+    };
+
+    window.onArPointer = function(u, v, action) {
+      handlePointer(u, v);
+      if (action === 'DOWN' && gameState === 'SERVE_WAIT' && server === 'PLAYER') {
+        serve();
+      }
+    };
+
+    // Main Game Loop
+    let lastTime = performance.now();
+
+    function gameLoop(now) {
+      const dt = Math.min(0.04, (now - lastTime) / 1000);
+      lastTime = now;
+
+      // Update Physics
+      if (gameState === 'RALLY') {
+        bvy -= 9.8 * dt;
+        bx += bvx * dt;
+        by += bvy * dt;
+        bz += bvz * dt;
+
+        trail.push(project3D(bx, by, bz));
+        if (trail.length > 10) trail.shift();
+
+        // Table bounce
+        if (by <= 0.04 && bvy < 0) {
+          if (bz >= TABLE_Z_NEAR && bz <= TABLE_Z_FAR && Math.abs(bx) <= TABLE_HALF_W) {
+            by = 0.04;
+            bvy = -bvy * 0.86;
+            playTone(850, 'triangle', 0.05);
+            if (bz < TABLE_Z_NET) {
+              pBounces++;
+              if (pBounces > 1) awardPoint('BOT', "Ikki marta urilish");
+            } else {
+              bBounces++;
+              if (bBounces > 1) awardPoint('PLAYER', "Ikki marta urilish");
+            }
+          } else {
+            // Out
+            awardPoint(bz < TABLE_Z_NET ? (lastHitter === 'BOT' ? 'PLAYER' : 'BOT') : (lastHitter === 'PLAYER' ? 'BOT' : 'PLAYER'), "Aut");
+          }
+        }
+
+        // Net collision
+        if (Math.abs(bz - TABLE_Z_NET) < 0.08 && by < NET_H && Math.abs(bx) <= TABLE_HALF_W) {
+          bvz = -bvz * 0.35;
+          playTone(200, 'square', 0.06);
+        }
+
+        // Player Hit
+        if (bz <= pz + 0.16 && bz >= pz - 0.12 && bvz < 0) {
+          const dist = Math.hypot(bx - px, by - py);
+          if (dist <= 0.24) {
+            lastHitter = 'PLAYER';
+            pBounces = 0; bBounces = 0;
+            bvz = 5.2;
+            bvx = (bx - px) * 8.0;
+            bvy = Math.max(1.2, 1.8 - (by - py) * 3.5);
+            playTone(650, 'sine', 0.06, 450);
+          }
+        }
+
+        // Bot AI
+        const botSpeed = difficulty === 'OSON' ? 2.5 : (difficulty === 'ORTA' ? 4.8 : 7.2);
+        const targetBotX = bvz > 0 ? (difficulty === 'QIYIN' ? bx + bvx * 0.25 : bx) : 0;
+        botX += Math.max(-botSpeed * dt, Math.min(botSpeed * dt, targetBotX - botX));
+
+        if (bz >= botZ - 0.16 && bz <= botZ + 0.12 && bvz > 0) {
+          const dist = Math.hypot(bx - botX, by - botY);
+          if (dist <= 0.26) {
+            lastHitter = 'BOT';
+            pBounces = 0; bBounces = 0;
+            bvz = -5.0;
+            bvx = (Math.random() - 0.5) * 1.5;
+            bvy = 1.8;
+            playTone(650, 'sine', 0.06, 450);
+          }
+        }
+
+        // Baselines
+        if (bz < 0.25) awardPoint('BOT', "O'tkazib yuborildi");
+        if (bz > 4.75) awardPoint('PLAYER', "Zarba o'tdi");
+      } else if (gameState === 'SERVE_WAIT') {
+        if (server === 'BOT') {
+          botReactionTimer += dt;
+          if (botReactionTimer > 1.2) serve();
+        }
+      }
+
+      // Draw 3D Scene
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Table
+      const pNL = project3D(-TABLE_HALF_W, 0, TABLE_Z_NEAR);
+      const pNR = project3D(TABLE_HALF_W, 0, TABLE_Z_NEAR);
+      const pFR = project3D(TABLE_HALF_W, 0, TABLE_Z_FAR);
+      const pFL = project3D(-TABLE_HALF_W, 0, TABLE_Z_FAR);
+
+      ctx.fillStyle = '#0F4C81';
+      ctx.beginPath();
+      ctx.moveTo(pNL.x, pNL.y);
+      ctx.lineTo(pNR.x, pNR.y);
+      ctx.lineTo(pFR.x, pFR.y);
+      ctx.lineTo(pFL.x, pFL.y);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = '#FFFFFF';
+      ctx.lineWidth = 4;
+      ctx.stroke();
+
+      // Net
+      const nL = project3D(-TABLE_HALF_W - 0.1, 0, TABLE_Z_NET);
+      const nR = project3D(TABLE_HALF_W + 0.1, 0, TABLE_Z_NET);
+      const nLT = project3D(-TABLE_HALF_W - 0.1, NET_H, TABLE_Z_NET);
+      const nRT = project3D(TABLE_HALF_W + 0.1, NET_H, TABLE_Z_NET);
+
+      ctx.fillStyle = 'rgba(28, 40, 56, 0.7)';
+      ctx.beginPath();
+      ctx.moveTo(nL.x, nL.y);
+      ctx.lineTo(nR.x, nR.y);
+      ctx.lineTo(nRT.x, nRT.y);
+      ctx.lineTo(nLT.x, nLT.y);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = '#FFF';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.moveTo(nLT.x, nLT.y);
+      ctx.lineTo(nRT.x, nRT.y);
+      ctx.stroke();
+
+      // Ball Trail & Ball
+      trail.forEach((pt, i) => {
+        ctx.fillStyle = `rgba(100, 210, 255, ${i / 10 * 0.4})`;
+        ctx.beginPath();
+        ctx.arc(pt.x, pt.y, 4, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      const bp = project3D(bx, by, bz);
+      const bRad = Math.max(6, 0.04 * bp.scale);
+      ctx.fillStyle = '#FFA000';
+      ctx.beginPath();
+      ctx.arc(bp.x, bp.y, bRad, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Paddles
+      const botP = project3D(botX, botY, botZ);
+      ctx.fillStyle = '#D32F2F';
+      ctx.beginPath();
+      ctx.arc(botP.x, botP.y, 16, 0, Math.PI * 2);
+      ctx.fill();
+
+      const pp = project3D(px, py, pz);
+      ctx.fillStyle = '#E53935';
+      ctx.beginPath();
+      ctx.arc(pp.x, pp.y, 32, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#64D2FF';
+      ctx.lineWidth = 3;
+      ctx.stroke();
+
+      requestAnimationFrame(gameLoop);
+    }
+
+    requestAnimationFrame(gameLoop);
+  </script>
+</body>
+</html>
+

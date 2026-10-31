@@ -4,8 +4,8 @@
 **Loyiha:** AR Port — Spatial AR/VR Headset OS for Android  
 **Paket nomi:** `uz.orbitx.arport`  
 **Yakuniy mahsulot:** `dist/ar-port.apk`  
-**Hozirgi umumiy progress:** **84.2%** (19 ta strategik qadamdan 16 tasi to'liq yakunlandi va sinovdan o'tdi)  
-**Qolgan ish hajmi:** **15.8%** (3 ta qadam: QADAM 17, 18, 19)
+**Hozirgi umumiy progress:** **89.5%** (19 ta strategik qadamdan 17 tasi to'liq yakunlandi va sinovdan o'tdi)  
+**Qolgan ish hajmi:** **10.5%** (2 ta qadam: QADAM 18, 19)
 
 ---
 
@@ -121,26 +121,29 @@
 - **AR Shaxmat + Chess.com (`chess/index.html`):** Qimmatbaho shisha doska, FIDE qoidalari, Minimax AI boti (3 daraja), yurishlar tarixi, urib olingan donalar; `"🌐 Chess.com (Onlayn)"` tugmasi orqali jonli Chess.com o'yinlariga o'tish.
 - Barcha o'yinlar `window.onArGesture` fazoviy imo-ishoralari (Pinch, Tap, 4-tomonlama svayp) bilan boshqariladi.
 
+### ✅ QADAM 17: O'yinlar II (3D Stol Tennisi va 3D Fazoviy Mergan)
+- **3D Stol Tennisi (`TableTennisApp.kt`):**
+  - ITTF xalqaro standartlari bo'yicha 3D stol geometriyasi ($2.74 \times 1.525$ m, $0.1525$ m to'r, 3D perspektiv proyeksiyasi).
+  - 3D to'p fizikasi: tortishish kuchi ($g = 9.8$ m/s$^2$), Magnus aylanma effekti, stolga elastik sakrash ($e = 0.86$), to'r bilan to'qnashuv, aut qoidalari.
+  - Qo'l nuri $(u, v)$ ga bog'langan 3D raketka: harakat tezligi orqali kesish (slice) va zarba (smash) kuchi.
+  - 3 darajali AI bot raqibi (Oson, O'rta, Qiyin), 11 ochkogacha 2 ochkolik farq bilan to'liq o'yin, navbatma-navbat to'p kiritish.
+  - VisionOS Liquid Glass hisob-kitob paneli va oflayn HTML5 varianti (`apps/games/pingpong3d/index.html`).
+- **3D Fazoviy Mergan (`Shooter3DApp.kt`):**
+  - Kelajak golografik tunnel sahnasi va yulduzlar fazosi.
+  - 10 ta to'lqin (Waves 1-10) va 4 xil dushman: Golografik Dron, Zirhli Sfera, Tezkor Razvedkachi, Ona Dron (Boss).
+  - 3 xil qurollar: Lazer To'pponcha (cheksiz quvvat, $35$ dmg), Plazma Avtomat (30 o'q, $25$ dmg), Raketa Otgich ($18$ m/s, $120$ AoE maydoniy portlash, 4 o'q).
+  - Qo'l lazer nuri orqali avtomatik nishonga qulflanish (lock-on reticle), chimchilash (Pinch) yoki bosish (Tap) orqali otish, $x1 \to x5$ Combo ko'paytiruvchisi, 3D zarrachalar portlashi, 100 HP sog'liq va tiklanuvchi qalqon.
+  - Oflayn HTML5 varianti (`apps/games/shooter3d/index.html`).
+
 ---
 
-## 3. Qolgan Ishlar Rejasi (15.8% — Yakuniy Bosqich)
+## 3. Qolgan Ishlar Rejasi (10.5% — Yakuniy Bosqich)
 
-AR Port to'liq yakunlanishi uchun oldimizda faqatgina **3 ta qadam** qoldi:
+AR Port to'liq yakunlanishi uchun oldimizda faqatgina **2 ta qadam** qoldi:
 
 ```
-[========================================------] 84.2% TAYYOR
+[============================================--] 89.5% TAYYOR
 ```
-
-### ⏳ QADAM 17 — O'yinlar II: 3D Table Tennis (botlar) va 3D Shooter (~5.3%)
-- **3D Table Tennis (Stol Tennisi):**
-  - Foydalanuvchining qo'l pozitsiyasi to'g'ridan-to'g'ri 3D raketkaga aylanadi.
-  - To'p fizikasi: trayektoriya, spin, stol va to'rga urilish elastikligi.
-  - 3 darajadagi AI bot raqibi (Oson, O'rta, Qiyin), 11 ochkogacha hisob yuritish.
-- **3D Shooter (Fazoviy Mergan):**
-  - Lazer nuri = nishonga olish, chimchilash (Pinch) = otish.
-  - To'lqinli (waves) fazoviy nishonlar, 3 xil qurol turi, qayta o'qlash mexanikasi.
-  - Sog'liq va o'q-dori shisha HUD paneli, 3 qiyinchilik darajasi.
-  - 60 FPS uzluksiz kadr tezligi.
 
 ### ⏳ QADAM 18 — Samaradorlik, Barqarorlik, Maxfiylik va Tozalash (~5.3%)
 - **Adaptiv Sifat Nazorati:** Kadrlar tezligi 45 FPS dan pastga tushsa, render rezolyutsiyasi va Kawase blur sifatini avtomatik moslashuvchan pasaytirish.
@@ -162,12 +165,13 @@ AR Port to'liq yakunlanishi uchun oldimizda faqatgina **3 ta qadam** qoldi:
 
 | Mezon | Natija | Holat |
 |---|---|---|
-| **JVM Unit Testlar** | **69 ta test** muvaffaqiyatli o'tdi | ✅ 100% Yashil (`BUILD SUCCESSFUL in 35s`) |
+| **JVM Unit Testlar** | **92 ta test** muvaffaqiyatli o'tdi | ✅ 100% Yashil (`BUILD SUCCESSFUL in 1m 20s`) |
 | **Flutter Widget / Unit Testlar** | **12 ta test** muvaffaqiyatli o'tdi | ✅ 100% Yashil (`All tests passed`) |
 | **Flutter Statik Tahlil (`analyze`)** | **0 ogohlantirish, 0 xatolik** | ✅ Ideal toza (`No issues found`) |
 | **Debug APK Yig'ilishi** | `build\app\outputs\flutter-apk\app-debug.apk` | ✅ Yig'ilgan (215.90 MB, exit code 0) |
-| **Dvigatellar integratsiyasi** | CameraX + GLES 3.0 + MediaPipe + WebAppSurface | ✅ To'liq bog'langan |
-| **Oflayn resurslar** | 6 ta o'yin HTML5/JS/Web Audio assets ichida | ✅ 100% Oflayn ishlaydi |
+| **Dvigatellar integratsiyasi** | CameraX + GLES 3.0 + MediaPipe + WebAppSurface + 3D Native Apps | ✅ To'liq bog'langan |
+| **Oflayn resurslar** | 8 ta o'yin (6x 2D + 2x 3D) HTML5/JS/Web Audio assets ichida | ✅ 100% Oflayn ishlaydi |
+| **Git Repozitoriy** | `main` shoxi, 92 ta unit test bilan | ✅ Barcha fayllar saqlangan |
 | **Git Repozitoriy** | `master` shoxi, oxirgi kommit: `9088ecc` | ✅ Barcha fayllar saqlangan |
 
 ---
@@ -177,3 +181,4 @@ AR Port to'liq yakunlanishi uchun oldimizda faqatgina **3 ta qadam** qoldi:
 Loyiha eng qiyin va mas'uliyatli qismlaridan muvaffaqiyatli o'tdi: arxitektura, passthrough kamera, stereo linzalar, optik shaderlar, MediaPipe qo'l kuzatuvi, suzuvchi oynalar, xavfsiz sandbox, native ilovalar va 6 ta to'liq o'yin tayyor holatda.
 
 Foydalanuvchi keyingi bosqichga o'tish uchun **"davom et"** buyrug'ini berganida, to'g'ridan-to'g'ri **QADAM 17 (3D Table Tennis va 3D Shooter)** ga kirishiladi.
+

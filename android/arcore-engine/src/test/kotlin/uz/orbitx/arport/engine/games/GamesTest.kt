@@ -93,7 +93,7 @@ class GamesTest {
 
     @Test
     fun testGameHtmlFilesExistAndContainGestureHooks() {
-        val gameFolders = listOf("tetris", "dino", "flappy", "snake", "g2048", "chess")
+        val gameFolders = listOf("tetris", "dino", "flappy", "snake", "g2048", "chess", "pingpong3d", "shooter3d")
         for (folder in gameFolders) {
             val file = listOf(
                 File("src/main/assets/games/$folder/index.html"),
@@ -135,5 +135,26 @@ class GamesTest {
         assertEquals(WindowAspect.LOCKED_16_9, dinoWindow.aspect)
 
         assertEquals(initialCount + 3, windowManager.activeWindows.size)
+    }
+
+    @Test
+    fun testAppRegistryLaunchGame3D() {
+        val initialCount = windowManager.activeWindows.size
+
+        // Table Tennis: 16:9 aspect
+        val pingPongWindow = appRegistry.launchApp("pingpong3d", windowManager)
+        assertNotNull(pingPongWindow)
+        assertEquals("pingpong3d", pingPongWindow!!.appId)
+        assertEquals(WindowAspect.LOCKED_16_9, pingPongWindow.aspect)
+        assertNotNull(pingPongWindow.contentSurface)
+
+        // 3D Shooter: 16:9 aspect
+        val shooterWindow = appRegistry.launchApp("shooter3d", windowManager)
+        assertNotNull(shooterWindow)
+        assertEquals("shooter3d", shooterWindow!!.appId)
+        assertEquals(WindowAspect.LOCKED_16_9, shooterWindow.aspect)
+        assertNotNull(shooterWindow.contentSurface)
+
+        assertEquals(initialCount + 2, windowManager.activeWindows.size)
     }
 }

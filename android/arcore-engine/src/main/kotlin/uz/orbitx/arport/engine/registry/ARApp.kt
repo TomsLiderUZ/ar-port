@@ -28,5 +28,10 @@ interface ARApp {
      * @param action MotionEvent action code (ACTION_DOWN, ACTION_MOVE, ACTION_UP)
      */
     fun onPointerEvent(u: Float, v: Float, action: Int) {}
-}
 
+    /**
+     * Continuous per-frame animation and physics tick called from the OpenGL render loop.
+     * @param dtSec Delta time in seconds since the last frame.
+     */
+    fun onUpdate(dtSec: Float) {}
+}

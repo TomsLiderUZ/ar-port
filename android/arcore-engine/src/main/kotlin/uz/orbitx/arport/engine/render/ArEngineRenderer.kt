@@ -244,6 +244,9 @@ class ArEngineRenderer(
                 }
             }
         }
+        for ((_, app) in appRegistry.activeNativeApps) {
+            app.onUpdate(dtSec)
+        }
 
         val visibleHands = handTracker?.getVisibleHands() ?: emptyList()
         gestureEngine.processHands(visibleHands, windowManager)
@@ -372,25 +375,25 @@ class ArEngineRenderer(
                 }
                 GestureType.SWIPE_LEFT -> {
                     webSurface.sendGameGesture("SWIPE_LEFT")
-                    if (event.window?.appId in setOf("tetris", "dino", "flappy", "snake", "g2048", "chess")) {
+                    if (event.window?.appId in setOf("tetris", "dino", "flappy", "snake", "g2048", "chess", "pingpong3d", "shooter3d")) {
                         return
                     }
                 }
                 GestureType.SWIPE_RIGHT -> {
                     webSurface.sendGameGesture("SWIPE_RIGHT")
-                    if (event.window?.appId in setOf("tetris", "dino", "flappy", "snake", "g2048", "chess")) {
+                    if (event.window?.appId in setOf("tetris", "dino", "flappy", "snake", "g2048", "chess", "pingpong3d", "shooter3d")) {
                         return
                     }
                 }
                 GestureType.SWIPE_UP -> {
                     webSurface.sendGameGesture("SWIPE_UP")
-                    if (event.window?.appId in setOf("tetris", "dino", "flappy", "snake", "g2048", "chess")) {
+                    if (event.window?.appId in setOf("tetris", "dino", "flappy", "snake", "g2048", "chess", "pingpong3d", "shooter3d")) {
                         return
                     }
                 }
                 GestureType.SWIPE_DOWN -> {
                     webSurface.sendGameGesture("SWIPE_DOWN")
-                    if (event.window?.appId in setOf("tetris", "dino", "flappy", "snake", "g2048", "chess")) {
+                    if (event.window?.appId in setOf("tetris", "dino", "flappy", "snake", "g2048", "chess", "pingpong3d", "shooter3d")) {
                         return
                     }
                 }
@@ -408,6 +411,12 @@ class ArEngineRenderer(
                 GestureType.TAP -> {
                     nativeApp.onPointerEvent(event.u, event.v, android.view.MotionEvent.ACTION_DOWN)
                     nativeApp.onPointerEvent(event.u, event.v, android.view.MotionEvent.ACTION_UP)
+                }
+                GestureType.PINCH -> {
+                    nativeApp.onPointerEvent(event.u, event.v, android.view.MotionEvent.ACTION_DOWN)
+                }
+                GestureType.HOVER -> {
+                    nativeApp.onPointerEvent(event.u, event.v, android.view.MotionEvent.ACTION_HOVER_MOVE)
                 }
                 GestureType.SCROLL, GestureType.DRAG -> {
                     nativeApp.onPointerEvent(event.u, event.v, android.view.MotionEvent.ACTION_MOVE)

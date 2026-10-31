@@ -156,8 +156,8 @@ class AppRegistry(private val context: Context? = null) {
             }
         }
 
-        // If Native App and Context available, instantiate real ARApp surface
-        if (context != null && manifest.type == "native") {
+        // If Native App or 3D Game App and Context available, instantiate real ARApp surface
+        if (context != null && (manifest.type == "native" || manifest.type == "game3d")) {
             try {
                 val nativeApp: ARApp? = when (manifest.id) {
                     "camera" -> uz.orbitx.arport.engine.apps.CameraApp(manifest)
@@ -165,6 +165,8 @@ class AppRegistry(private val context: Context? = null) {
                     "clock" -> uz.orbitx.arport.engine.apps.ClockApp(manifest)
                     "calendar" -> uz.orbitx.arport.engine.apps.CalendarApp(manifest)
                     "settings" -> uz.orbitx.arport.engine.apps.SettingsApp(manifest)
+                    "pingpong3d" -> uz.orbitx.arport.engine.apps.TableTennisApp(manifest)
+                    "shooter3d" -> uz.orbitx.arport.engine.apps.Shooter3DApp(manifest)
                     else -> null
                 }
                 if (nativeApp != null) {

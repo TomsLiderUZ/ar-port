@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>3D Mergan — AR Port</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+    body {
+      background: #06080E;
+      color: #fff;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", Inter, sans-serif;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      width: 100vw;
+      height: 100vh;
+    }
+    #game-container {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      max-width: 1280px;
+      max-height: 720px;
+      aspect-ratio: 16 / 9;
+      display: flex;
+      flex-direction: column;
+    }
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      cursor: crosshair;
+    }
+    .liquid-glass {
+      background: rgba(24, 28, 38, 0.75);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      border-radius: 20px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    }
+    #hud-top {
+      position: absolute;
+      top: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 10px 28px;
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      pointer-events: none;
+    }
+    .score-badge {
+      font-size: 32px;
+      font-weight: 700;
+      color: #64D2FF;
+    }
+    #hud-player-stats {
+      position: absolute;
+      top: 16px;
+      left: 16px;
+      padding: 12px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      width: 220px;
+      pointer-events: none;
+    }
+    .stat-bar-bg {
+      width: 100%;
+      height: 8px;
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .stat-bar-fill {
+      height: 100%;
+      border-radius: 4px;
+      transition: width 0.2s ease-out;
+    }
+    .hp-fill { background: #30D158; width: 100%; }
+    .shield-fill { background: #0A84FF; width: 100%; }
+    #hud-weapons {
+      position: absolute;
+      bottom: 16px;
+      left: 16px;
+      display: flex;
+      gap: 10px;
+    }
+    .weapon-pill {
+      background: rgba(29, 34, 46, 0.7);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 16px;
+      padding: 10px 16px;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      cursor: pointer;
+      min-width: 130px;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .weapon-pill.active {
+      background: rgba(10, 132, 255, 0.35);
+      border-color: #64D2FF;
+      box-shadow: 0 0 16px rgba(10, 132, 255, 0.4);
+    }
+    .weapon-name { font-size: 14px; font-weight: 700; }
+    .weapon-ammo { font-size: 12px; color: #64D2FF; margin-top: 3px; }
+    #btn-reload {
+      background: rgba(45, 52, 68, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      border-radius: 16px;
+      color: #fff;
+      padding: 10px 18px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #hud-controls {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      display: flex;
+      gap: 8px;
+    }
+    .btn-glass {
+      background: rgba(36, 42, 54, 0.65);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 14px;
+      color: #fff;
+      padding: 8px 16px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .btn-glass.active {
+      background: #0A84FF;
+      border-color: #64D2FF;
+    }
+  </style>
+</head>
+<body>
+  <div id="game-container">
+    <canvas id="shooterCanvas" width="1280" height="720"></canvas>
+
+    <div id="hud-player-stats" class="liquid-glass">
+      <div style="font-size: 12px; font-weight: 600; display: flex; justify-content: space-between;">
+        <span>❤️ SOG'LIQ</span><span id="hp-text">100</span>
+      </div>
+      <div class="stat-bar-bg"><div class="stat-bar-fill hp-fill" id="hp-bar"></div></div>
+      <div style="font-size: 12px; font-weight: 600; display: flex; justify-content: space-between; margin-top: 4px;">
+        <span>🛡️ QALQON</span><span id="shield-text">50</span>
+      </div>
+      <div class="stat-bar-bg"><div class="stat-bar-fill shield-fill" id="shield-bar"></div></div>
+    </div>
+
+    <div id="hud-top" class="liquid-glass">
+      <div style="display: flex; flex-direction: column; align-items: center;">
+        <span style="font-size: 13px; color: #8E8E93; font-weight: 600;" id="wave-text">To'lqin: 1 / 10</span>
+        <span class="score-badge" id="score-text">0</span>
+      </div>
+      <div id="combo-badge" style="display: none; font-size: 18px; color: #FFD60A; font-weight: 700;">⚡ x2 COMBO!</div>
+    </div>
+
+    <div id="hud-controls">
+      <button class="btn-glass" id="btn-oson" onclick="setDiff('OSON')">Oson</button>
+      <button class="btn-glass active" id="btn-orta" onclick="setDiff('ORTA')">O'rta</button>
+      <button class="btn-glass" id="btn-qiyin" onclick="setDiff('QIYIN')">Qiyin</button>
+      <button class="btn-glass" id="btn-sound" onclick="toggleAudio()">🔊</button>
+      <button class="btn-glass" onclick="resetGame()">🔄 Qayta</button>
+    </div>
+
+    <div id="hud-weapons">
+      <div class="weapon-pill active" id="wp-laser" onclick="switchWeapon('LASER')">
+        <span class="weapon-name">🔫 Lazer</span>
+        <span class="weapon-ammo">Cheksiz</span>
+      </div>
+      <div class="weapon-pill" id="wp-plasma" onclick="switchWeapon('PLASMA')">
+        <span class="weapon-name">⚡ Plazma</span>
+        <span class="weapon-ammo" id="plasma-ammo">30 / 30</span>
+      </div>
+      <div class="weapon-pill" id="wp-rocket" onclick="switchWeapon('ROCKET')">
+        <span class="weapon-name">🚀 Raketa</span>
+        <span class="weapon-ammo" id="rocket-ammo">4 / 4</span>
+      </div>
+      <button id="btn-reload" onclick="startReload()">🔄 O'qlash</button>
+    </div>
+  </div>
+
+  <script>
+    // Web Audio Synthesizer
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    let audioCtx = null;
+    let audioEnabled = true;
+
+    function playSound(type) {
+      if (!audioEnabled) return;
+      try {
+        if (!audioCtx) audioCtx = new AudioCtx();
+        const t = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+
+        if (type === 'laser') {
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(1100, t);
+          osc.frequency.exponentialRampToValueAtTime(300, t + 0.08);
+          gain.gain.setValueAtTime(0.25, t);
+          gain.gain.exponentialRampToValueAtTime(0.01, t + 0.08);
+          osc.connect(gain); gain.connect(audioCtx.destination);
+          osc.start(); osc.stop(t + 0.08);
+        } else if (type === 'plasma') {
+          osc.type = 'square';
+          osc.frequency.setValueAtTime(800, t);
+          osc.frequency.exponentialRampToValueAtTime(250, t + 0.07);
+          gain.gain.setValueAtTime(0.2, t);
+          gain.gain.exponentialRampToValueAtTime(0.01, t + 0.07);
+          osc.connect(gain); gain.connect(audioCtx.destination);
+          osc.start(); osc.stop(t + 0.07);
+        } else if (type === 'rocket') {
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(220, t);
+          osc.frequency.exponentialRampToValueAtTime(700, t + 0.15);
+          gain.gain.setValueAtTime(0.3, t);
+          gain.gain.exponentialRampToValueAtTime(0.01, t + 0.15);
+          osc.connect(gain); gain.connect(audioCtx.destination);
+          osc.start(); osc.stop(t + 0.15);
+        } else if (type === 'explosion') {
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(150, t);
+          osc.frequency.exponentialRampToValueAtTime(40, t + 0.28);
+          gain.gain.setValueAtTime(0.35, t);
+          gain.gain.exponentialRampToValueAtTime(0.01, t + 0.28);
+          osc.connect(gain); gain.connect(audioCtx.destination);
+          osc.start(); osc.stop(t + 0.28);
+        }
+      } catch (e) {}
+    }
+
+    function toggleAudio() {
+      audioEnabled = !audioEnabled;
+      document.getElementById('btn-sound').innerText = audioEnabled ? '🔊' : '🔇';
+    }
+
+    // 3D Canvas Engine
+    const canvas = document.getElementById('shooterCanvas');
+    const ctx = canvas.getContext('2d');
+
+    let difficulty = 'ORTA';
+    let playerHp = 100;
+    let playerShield = 50;
+    let score = 0;
+    let highScore = parseInt(localStorage.getItem('ar_shooter_best') || '0', 10);
+    let wave = 1;
+    let combo = 1;
+    let comboTimer = 0;
+    let isGameOver = false;
+
+    // Weapons
+    let curWeapon = 'LASER';
+    let plasmaAmmo = 30;
+    let rocketAmmo = 4;
+    let isReloading = false;
+    let cooldownTimer = 0;
+
+    // Crosshair normalized [-1..1]
+    let chX = 0, chY = 0;
+    let isLocked = false;
+    let muzzleFlash = 0;
+    let damageFlash = 0;
+
+    const enemies = [];
+    const particles = [];
+    const rockets = [];
+    const floatingTexts = [];
+
+    function project3D(x, y, z) {
+      const dCam = 1.4;
+      const focal = 880;
+      const scale = focal / (Math.max(0.1, z) + dCam);
+      const sx = (canvas.width / 2) + (x * scale);
+      const sy = (canvas.height / 2) - (y * scale);
+      return { x: sx, y: sy, scale: scale };
+    }
+
+    function setDiff(d) {
+      difficulty = d;
+      document.querySelectorAll('#hud-controls .btn-glass').forEach(b => {
+        if (b.id !== 'btn-sound') b.classList.remove('active');
+      });
+      document.getElementById('btn-' + d.toLowerCase()).classList.add('active');
+    }
+
+    function switchWeapon(w) {
+      curWeapon = w;
+      document.querySelectorAll('.weapon-pill').forEach(p => p.classList.remove('active'));
+      document.getElementById('wp-' + w.toLowerCase()).classList.add('active');
+    }
+
+    function startReload() {
+      if (isReloading || curWeapon === 'LASER') return;
+      isReloading = true;
+      document.getElementById('btn-reload').innerText = "O'qlanmoqda...";
+      setTimeout(() => {
+        if (curWeapon === 'PLASMA') plasmaAmmo = 30;
+        if (curWeapon === 'ROCKET') rocketAmmo = 4;
+        isReloading = false;
+        document.getElementById('btn-reload').innerText = "🔄 O'qlash";
+        updateAmmoUI();
+      }, curWeapon === 'PLASMA' ? 1400 : 2200);
+    }
+
+    function updateAmmoUI() {
+      document.getElementById('plasma-ammo').innerText = `${plasmaAmmo} / 30`;
+      document.getElementById('rocket-ammo').innerText = `${rocketAmmo} / 4`;
+    }
+
+    function spawnWave(w) {
+      enemies.length = 0;
+      const count = 4 + (w * 2);
+      for (let i = 0; i < count; i++) {
+        const isBoss = (w % 5 === 0 && i === 0);
+        enemies.push({
+          x: (Math.random() - 0.5) * 8.0,
+          y: (Math.random() - 0.5) * 5.0,
+          z: 12 + (i * 3.2),
+          hp: isBoss ? 350 : (i % 3 === 0 ? 120 : 50),
+          maxHp: isBoss ? 350 : (i % 3 === 0 ? 120 : 50),
+          radius: isBoss ? 1.2 : (i % 3 === 0 ? 0.65 : 0.45),
+          speedZ: isBoss ? 0.8 : (difficulty === 'QIYIN' ? 2.5 : 1.4),
+          color: isBoss ? '#AF52DE' : (i % 3 === 0 ? '#FFB300' : '#00F0FF'),
+          wobble: Math.random() * 10
+        });
+      }
+      document.getElementById('wave-text').innerText = `To'lqin: ${w} / 10`;
+    }
+
+    function fire() {
+      if (isGameOver || isReloading || cooldownTimer > 0) return;
+
+      if (curWeapon === 'LASER') {
+        cooldownTimer = 0.2;
+        muzzleFlash = 1.0;
+        playSound('laser');
+        raycastShot(35);
+      } else if (curWeapon === 'PLASMA') {
+        if (plasmaAmmo <= 0) { startReload(); return; }
+        plasmaAmmo--;
+        updateAmmoUI();
+        cooldownTimer = 0.1;
+        muzzleFlash = 0.8;
+        playSound('plasma');
+        raycastShot(25);
+      } else if (curWeapon === 'ROCKET') {
+        if (rocketAmmo <= 0) { startReload(); return; }
+        rocketAmmo--;
+        updateAmmoUI();
+        cooldownTimer = 0.8;
+        muzzleFlash = 1.0;
+        playSound('rocket');
+        rockets.push({ x: 0, y: -0.4, z: 0.8, tx: chX * 6.5, ty: chY * 4.2, tz: 16 });
+      }
+    }
+
+    function raycastShot(dmg) {
+      const chScreenX = (canvas.width / 2) + (chX * (canvas.width * 0.45));
+      const chScreenY = (canvas.height / 2) - (chY * (canvas.height * 0.40));
+
+      for (let i = enemies.length - 1; i >= 0; i--) {
+        const e = enemies[i];
+        const pt = project3D(e.x, e.y, e.z);
+        const rad = Math.max(20, e.radius * pt.scale);
+        const dist = Math.hypot(pt.x - chScreenX, pt.y - chScreenY);
+
+        if (dist <= rad) {
+          e.hp -= dmg;
+          createExplosion(e.x, e.y, e.z, '#64D2FF', 8);
+          if (e.hp <= 0) {
+            createExplosion(e.x, e.y, e.z, e.color, 24);
+            playSound('explosion');
+            score += 100 * combo;
+            document.getElementById('score-text').innerText = score;
+            combo = Math.min(5, combo + 1);
+            comboTimer = 3.5;
+            enemies.splice(i, 1);
+          }
+          break;
+        }
+      }
+    }
+
+    function createExplosion(x, y, z, color, count) {
+      for (let i = 0; i < count; i++) {
+        const a = Math.random() * Math.PI * 2;
+        const sp = 2 + Math.random() * 5;
+        particles.push({
+          x: x, y: y, z: z,
+          vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, vz: (Math.random() - 0.5) * 4,
+          life: 0.8, color: color
+        });
+      }
+    }
+
+    function resetGame() {
+      playerHp = 100;
+      playerShield = 50;
+      score = 0;
+      wave = 1;
+      combo = 1;
+      isGameOver = false;
+      plasmaAmmo = 30;
+      rocketAmmo = 4;
+      document.getElementById('hp-bar').style.width = '100%';
+      document.getElementById('hp-text').innerText = '100';
+      document.getElementById('shield-bar').style.width = '100%';
+      document.getElementById('shield-text').innerText = '50';
+      document.getElementById('score-text').innerText = '0';
+      updateAmmoUI();
+      spawnWave(wave);
+    }
+
+    canvas.addEventListener('mousemove', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      chX = (((e.clientX - rect.left) / rect.width) - 0.5) * 2.2;
+      chY = (1.0 - ((e.clientY - rect.top) / rect.height) - 0.5) * 2.0;
+    });
+
+    canvas.addEventListener('click', fire);
+
+    // AR Spatial Gesture Integration Hooks
+    window.onArGesture = function(type) {
+      if (type === 'TAP' || type === 'PINCH') {
+        fire();
+      } else if (type === 'SWIPE_LEFT') {
+        switchWeapon('LASER');
+      } else if (type === 'SWIPE_RIGHT') {
+        switchWeapon('PLASMA');
+      } else if (type === 'SWIPE_UP') {
+        switchWeapon('ROCKET');
+      } else if (type === 'SWIPE_DOWN') {
+        startReload();
+      }
+    };
+
+    window.onArPointer = function(u, v, action) {
+      chX = (u - 0.5) * 2.2;
+      chY = ((1.0 - v) - 0.5) * 2.0;
+      if (action === 'DOWN') fire();
+    };
+
+    // Main Game Loop
+    let lastTime = performance.now();
+    spawnWave(wave);
+
+    function gameLoop(now) {
+      const dt = Math.min(0.04, (now - lastTime) / 1000);
+      lastTime = now;
+
+      if (!isGameOver) {
+        if (cooldownTimer > 0) cooldownTimer -= dt;
+        if (comboTimer > 0) {
+          comboTimer -= dt;
+          if (comboTimer <= 0) combo = 1;
+        }
+        if (muzzleFlash > 0) muzzleFlash -= dt * 5;
+        if (damageFlash > 0) damageFlash -= dt * 3;
+
+        // Advance enemies
+        let locked = false;
+        const chScreenX = (canvas.width / 2) + (chX * (canvas.width * 0.45));
+        const chScreenY = (canvas.height / 2) - (chY * (canvas.height * 0.40));
+
+        for (let i = enemies.length - 1; i >= 0; i--) {
+          const e = enemies[i];
+          e.wobble += dt * 3;
+          e.x += Math.sin(e.wobble) * dt * 0.5;
+          e.z -= e.speedZ * dt;
+
+          const pt = project3D(e.x, e.y, e.z);
+          const rad = Math.max(20, e.radius * pt.scale);
+          if (Math.hypot(pt.x - chScreenX, pt.y - chScreenY) <= rad) locked = true;
+
+          if (e.z <= 0.65) {
+            damageFlash = 1.0;
+            playerHp -= 15;
+            document.getElementById('hp-text').innerText = Math.max(0, playerHp);
+            document.getElementById('hp-bar').style.width = Math.max(0, playerHp) + '%';
+            if (playerHp <= 0) isGameOver = true;
+            enemies.splice(i, 1);
+          }
+        }
+        isLocked = locked;
+
+        // Wave advancement
+        if (enemies.length === 0) {
+          wave++;
+          if (wave > 10) isGameOver = true;
+          else spawnWave(wave);
+        }
+      }
+
+      // Draw 3D Tunnel
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      ctx.strokeStyle = 'rgba(0, 240, 255, 0.12)';
+      ctx.lineWidth = 1.5;
+      for (let r = 1; r <= 6; r++) {
+        const sz = 880 / (r * 3.5 + 1.4);
+        ctx.strokeRect((canvas.width / 2) - 4.5 * sz, (canvas.height / 2) - 2.8 * sz, 9.0 * sz, 5.6 * sz);
+      }
+
+      // Draw Enemies
+      enemies.forEach(e => {
+        const pt = project3D(e.x, e.y, e.z);
+        const rad = Math.max(16, e.radius * pt.scale);
+        ctx.fillStyle = e.color;
+        ctx.beginPath();
+        ctx.arc(pt.x, pt.y, rad, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#FFFFFF';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      });
+
+      // Draw Particles
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.x += p.vx * dt; p.y += p.vy * dt; p.z += p.vz * dt;
+        p.life -= dt;
+        if (p.life <= 0) { particles.splice(i, 1); continue; }
+        const pt = project3D(p.x, p.y, p.z);
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.arc(pt.x, pt.y, 4, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // Crosshair
+      const chScreenX = (canvas.width / 2) + (chX * (canvas.width * 0.45));
+      const chScreenY = (canvas.height / 2) - (chY * (canvas.height * 0.40));
+      ctx.strokeStyle = isLocked ? '#30D158' : '#64D2FF';
+      ctx.lineWidth = isLocked ? 3.5 : 2;
+      ctx.beginPath();
+      ctx.arc(chScreenX, chScreenY, isLocked ? 24 : 32, 0, Math.PI * 2);
+      ctx.stroke();
+
+      ctx.fillStyle = isLocked ? '#30D158' : '#FFF';
+      ctx.beginPath();
+      ctx.arc(chScreenX, chScreenY, 4, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Screen flashes
+      if (damageFlash > 0) {
+        ctx.fillStyle = `rgba(255, 59, 48, ${damageFlash * 0.4})`;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      }
+      if (muzzleFlash > 0) {
+        ctx.fillStyle = `rgba(100, 210, 255, ${muzzleFlash * 0.3})`;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      }
+
+      requestAnimationFrame(gameLoop);
+    }
+
+    requestAnimationFrame(gameLoop);
+  </script>
+</body>
+</html>
+

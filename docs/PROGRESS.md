@@ -22,9 +22,9 @@ Ushbu hujjat har bir bosqich natijasini, qilingan ishlarni va ma'lum muammolarni
 | **12** | Home panel, dock, ilova reyestri va plagin tizimi | ✅ Bajarildi | AppRegistry (18 ta ilova manifesti), tools/generate_registry.dart, SpatialDock (Vision Pro dock: Home, Recenter, Ovoz, Yorug'lik, Klaviatura, Chiqish), SpatialHomePanel (kategoriya tablari, qidiruv, 3D ilovalar to'ri) |
 | **13** | Web ilovalar, umumiy sessiya va sandbox | ✅ Bajarildi | WebAppSurface (offscreen WebView -> ContentSurface, hardware acceleration, DOM/JS/media), SessionStore (Google/Telegram SSO cookie sinxronizatsiyasi), SandboxPolicy (tashqi intent bloklash, ruxsat etilgan xostlar, toza Chrome UA), SandboxTest unit testlari |
 | **14** | Native ilovalar: Kamera, Qaydlar, Soat, Kalendar | ✅ Bajarildi | CameraApp (foto/video, taymer, flip, galereya), NotesApp (SQLite persistence, qidiruv, kategoriya, eksport, klaviatura), ClockApp (Dunyo soati, Budilnik, Sekundomer oraliqlari, Taymer), CalendarApp (Oy/hafta/kun, hodisalar), NativeAppsTest |
-| **15** | AR Sozlamalar ilovasi | ⏳ Kutilmoqda | - |
-| **16** | O'yinlar I: 2D (Tetris, Dino, Flappy, Snake, 2048) + Chess.com | ⏳ Kutilmoqda | - |
-| **17** | O'yinlar II: 3D Table Tennis (botlar) va 3D Shooter | ⏳ Kutilmoqda | - |
+| **15** | AR Sozlamalar ilovasi | ✅ Bajarildi | SettingsStore, SettingsApp, jonli dinamik sozlamalar, imo-ishoralar xaritasi, eksport/import, to'liq testlar |
+| **16** | O'yinlar I: 2D (Tetris, Dino, Flappy, Snake, 2048) + Chess.com | ✅ Bajarildi | 6 ta to'liq oflayn 2D o'yin + Minimax AR shaxmat, 4-tomonlama svayplar, WebAppSurface integratsiyasi |
+| **17** | O'yinlar II: 3D Table Tennis (botlar) va 3D Shooter | ✅ Bajarildi | TableTennisApp (3D stol, to'p fizikasi, 3 darajali bot, 11 ochkolik o'yin), Shooter3DApp (3D tunnel, to'lqinlar, 3 qurol, nishon, zarralar), 92 ta unit test |
 | **18** | Samaradorlik, barqarorlik, maxfiylik, tozalash | ⏳ Kutilmoqda | - |
 | **19** | Yakuniy build: `ar-port.apk` | ⏳ Kutilmoqda | - |
 
@@ -403,5 +403,44 @@ Ushbu hujjat har bir bosqich natijasini, qilingan ishlarni va ma'lum muammolarni
      - JVM unit testlari (`GamesTest.kt` va avvalgi barcha testlar bo'yicha jami **69 ta test**) to'liq muvaffaqiyatli o'tdi (`BUILD SUCCESSFUL in 35s`).
      - Flutter testlari (12 ta test) va Flutter tahlili (`flutter analyze` — 0 ogohlantirish) to'liq o'tdi.
      - Debug APK (`flutter build apk --debug`) muvaffaqiyatli yig'ildi (`build\app\outputs\flutter-apk\app-debug.apk`, 215.90 MB, 46.9s).
+
+---
+
+## QADAM 17 Batafsil Hisoboti
+- **Sana:** 2026-10-31
+- **Bajarildi:**
+  1. Native 3D Stol Tennisi Dvigateli (`TableTennisApp.kt`):
+     - ITTF xalqaro standartlari bo'yicha 3D stol geometriyasi ($2.74 \times 1.525$ m, $0.1525$ m balandlikdagi to'r, $Y_{cam} = 0.65$ m balandlikdagi kamera ko'rish burchagi bo'yicha to'g'ri 3D perspektiv proyeksiyasi).
+     - Haqiqiy 3D to'p fizikasi: tortishish kuchi ($g = 9.8$ m/s$^2$), havoning aerodinamik qarshiligi, topspin va backspin orqali egri traektoriya hosil qilish (Magnus effekti), stol yuzasiga elastik sakrash ($e = 0.86$), to'r bilan to'qnashuv va yo'nalish o'zgarishi, aut va chiziqlar nazorati.
+     - Foydalanuvchining qo'l lazer nuri yoki sensorli teginish koordinatalariga $(u, v)$ to'g'ridan-to'g'ri bog'langan 3D raketka: harakat tezligi bo'yicha qirqish (slice) yoki zarba (smash) kuchi va aylanish berish.
+     - 3 ta intellektual darajadagi AI bot raqibi:
+       * **Oson (Easy):** $2.6$ m/s harakat tezligi, $0.20$ s reaksiya kechikishi, markazga oddiy qaytarish.
+       * **O'rta (Medium):** $4.8$ m/s harakat tezligi, burchaklarni nishonga olish, $90\%$ aniqlik.
+       * **Qiyin (Hard):** $7.6$ m/s harakat tezligi, to'p qo'nish nuqtasini oldindan hisoblovchi (trajectory anticipation), baland to'plarni agressiv smesh qiluvchi va past to'plarni qirquvchi professional bot.
+     - To'liq 11 ochkolik xalqaro match qoidalari: 2 ochkolik farq bilan g'alaba, 10-10 deuce holati, har 2 ochkoda (deuce da har 1 ochkoda) navbatma-navbat to'p kiritish (serve rotation), setlar hisobi.
+     - Apple VisionOS Liquid Glass HUD: jonli hisob-kitob kartasi (`Siz  7 - 5  Bot`), to'p kiritish holati ko'rsatkichi, qiyinchilik darajalari tabletkalari, to'p kiritish va qayta boshlash tugmalari.
+     - Oflayn HTML5 / Canvas / Web Audio varianti (`apps/games/pingpong3d/index.html` va `assets/games/pingpong3d/index.html`) bilan to'liq integratsiya.
+  2. Native 3D Fazoviy Mergan Dvigateli (`Shooter3DApp.kt`):
+     - Kelajak golografik tunnel sahnasi va yulduzlar fazosi (perspektiv kengayuvchi kiber panjara va chuqurlik halqalari).
+     - To'lqinlar tizimi (Wave 1 dan Wave 10 gacha) va 4 turdagi fazoviy dushmanlar:
+       * **Golografik Dron:** sinusoidal tebranuvchi standart nishon, $50$ HP, $100$ ball.
+       * **Zirhli Sfera:** sekin harakatlanuvchi mustahkam himoyalangan sfera, $130$ HP, $250$ ball.
+       * **Tezkor Razvedkachi:** tezkor va kutilmagan manyovrlar qiluvchi nishon, $35$ HP, $180$ ball.
+       * **Ona Dron (Boss):** har 5-to'lqinda aylanuvchi qalqon bilan keluvchi ulkan ona kema, $350$ HP, $1000$ ball.
+     - 3 xil sinfdagi fazoviy qurollar tizimi:
+       1. **Lazer To'pponcha (Laser Pistol):** cheksiz quvvat, oniy nur zarbasi, $35$ shikast, yuqori aniqlik.
+       2. **Plazma Avtomat (Plasma Rifle):** tezkor otish, 30 talik o'qdon, $25$ shikast, $1.4$ s qayta o'qlash.
+       3. **Raketa Otgich (Rocket Launcher):** $18$ m/s tezlikda uchuvchi og'ir 3D raketa snaryadi, dushman bilan to'qnashuvda yoki yetib borganda detanatsiya, $120$ AoE maydoniy portlash shikasti ($4.5$ m radius), 4 talik o'qdon, $2.2$ s qayta o'qlash.
+     - Qo'l nuri $(u, v)$ orqali 3D fazoda nishonga olish, nishon ustiga borganda avtomatik yashil rangda qulflanish (target lock-on reticle), chimchilash (Pinch) yoki bosish (Tap) orqali o't ochish, o'qlash tugmasi va imo-ishorasi.
+     - 3D zarrachalar portlashi (particle explosion system): dushmanga zarba tekkanida va yo'q qilinganda fazoda sochilib so'nuvchi 28+ ta neon zarrachalar.
+     - O'yinchi holati: $100$ HP sog'liq va vaqt o'tishi bilan o'zini tiklovchi $50$ lik energiya qalqoni, ketma-ket aniq zarbalar uchun $x1 \to x5$ gacha Combo multiplikatori, ekranda uchib chiquvchi ball va zarba raqamlari.
+     - VisionOS Liquid Glass HUD: sog'liq va qalqon ko'rsatkichlari, qurol tanlash paneli, o'q-dorilar hisoblagichi, to'lqinlar indikatori, qiyinchilik tabletkalari.
+     - Oflayn HTML5 / Canvas / Web Audio varianti (`apps/games/shooter3d/index.html` va `assets/games/shooter3d/index.html`) bilan to'liq integratsiya.
+  3. Dvigatellar va Arxitektura Integratsiyasi:
+     - `ARApp.kt` interfeysiga 60 FPS uzluksiz kadr siklini ta'minlovchi `fun onUpdate(dtSec: Float) {}` qo'shildi.
+     - `AppRegistry.kt` da `game3d` turi ro'yxatga olindi va `"pingpong3d"` hamda `"shooter3d"` ilovalari mos ravishda `TableTennisApp` va `Shooter3DApp` ga ulandi.
+     - `ArEngineRenderer.kt` da har kadrda `onUpdate(dtSec)` chaqiruvi kiritildi, `HOVER` va `PINCH` imo-ishoralari to'g'ridan-to'g'ri faol 3D o'yinlarga uzatildi, o'yin ichidagi svayplar oyna almashinuvidan himoyalandi.
+  4. Tekshiruv va sinovlar:
+     - JVM unit testlari (`TableTennisTest.kt` — 11 ta test, `Shooter3DTest.kt` — 10 ta test, `GamesTest.kt` — 5 ta test va barcha avvalgi testlar bo'yicha jami **92 ta test**) to'liq muvaffaqiyatli o'tdi (`BUILD SUCCESSFUL in 1m 20s`, 92/92 yashil).
 
 
