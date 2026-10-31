@@ -54,9 +54,13 @@ void main() {
     float factor = 1.0 + uDistortionCoeffs.x * r2 + uDistortionCoeffs.y * r4;
     vec2 distortedCoord = uLensCenter + d * factor;
 
-    // Smoothly sample eye texture with edge clamp to prevent accidental black clipping
-    vec2 clampedCoord = clamp(distortedCoord, 0.0, 1.0);
-    fragColor = texture(uEyeTexture, clampedCoord);
+    // Clean VR optical vignette border outside physical lens boundary
+    if (distortedCoord.x < 0.0 || distortedCoord.x > 1.0 ||
+        distortedCoord.y < 0.0 || distortedCoord.y > 1.0) {
+        fragColor = vec4(0.0, 0.0, 0.0, 1.0);
+    } else {
+        fragColor = texture(uEyeTexture, distortedCoord);
+    }
 }
 """
 

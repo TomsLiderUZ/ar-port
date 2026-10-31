@@ -553,6 +553,10 @@ class ArEngineRenderer(
         passthroughRenderer.setCameraPreviewSize(width, height)
     }
 
+    fun setCameraRotation(rotation: Int) {
+        passthroughRenderer.setCameraRotation(rotation)
+    }
+
     fun getFps(): Float = passthroughRenderer.fpsTracker.getFps()
 
     fun getLatencyMs(): Float = passthroughRenderer.fpsTracker.getLatencyMs()

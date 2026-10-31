@@ -9,6 +9,8 @@ import java.nio.FloatBuffer
 
 /**
  * High-performance Zero-Copy GPU Camera Passthrough Renderer using OpenGL ES 3.0 and OES Textures.
+ * Supports arbitrary viewport rendering (stereo eye & fullscreen), dynamic upright rotation,
+ * and distortion-free center-crop aspect filling.
  */
 class PassthroughRenderer(
     private val onFrameAvailableListener: () -> Unit
@@ -21,12 +23,12 @@ class PassthroughRenderer(
             layout(location = 0) in vec4 aPosition;
             layout(location = 1) in vec4 aTexCoord;
             uniform mat4 uTexMatrix;
-            uniform mat4 uCropMatrix;
+            uniform mat4 uTransformMatrix;
             out vec2 vTexCoord;
             void main() {
                 gl_Position = aPosition;
-                vec4 transformedTex = uTexMatrix * aTexCoord;
-                vTexCoord = (uCropMatrix * vec4(transformedTex.xy, 0.0, 1.0)).xy;
+                vec4 transformedUV = uTransformMatrix * aTexCoord;
+                vTexCoord = (uTexMatrix * vec4(transformedUV.xy, 0.0, 1.0)).xy;
             }
         """
 
@@ -50,7 +52,7 @@ class PassthroughRenderer(
              1.0f,  1.0f, 0.0f
         )
 
-        // Texture coordinates
+        // Texture coordinates in [0, 1]
         private val TEX_COORDS = floatArrayOf(
             0.0f, 0.0f, 0.0f, 1.0f,
             1.0f, 0.0f, 0.0f, 1.0f,
@@ -61,13 +63,13 @@ class PassthroughRenderer(
 
     private var program: Int = 0
     private var uTexMatrixLoc: Int = -1
-    private var uCropMatrixLoc: Int = -1
+    private var uTransformMatrixLoc: Int = -1
 
     private val vertexBuffer: FloatBuffer = GLHelper.createFloatBuffer(QUAD_COORDS)
     private val texCoordBuffer: FloatBuffer = GLHelper.createFloatBuffer(TEX_COORDS)
 
     private val texMatrix = FloatArray(16)
-    private val cropMatrix = FloatArray(16)
+    private val transformMatrix = FloatArray(16)
 
     var textureId: Int = 0
         private set
@@ -84,10 +86,14 @@ class PassthroughRenderer(
     private var screenWidth: Int = 1920
     private var screenHeight: Int = 1080
 
+    // Standard phone back camera in landscape requires 90° rotation to be upright
+    var cameraRotationDegrees: Int = 90
+        private set
+
     fun onSurfaceCreated() {
         program = GLHelper.createProgram(VERTEX_SHADER, FRAGMENT_SHADER)
         uTexMatrixLoc = GLES30.glGetUniformLocation(program, "uTexMatrix")
-        uCropMatrixLoc = GLES30.glGetUniformLocation(program, "uCropMatrix")
+        uTransformMatrixLoc = GLES30.glGetUniformLocation(program, "uTransformMatrix")
 
         textureId = GLHelper.createOESTexture()
         surfaceTexture = SurfaceTexture(textureId).apply {
@@ -95,48 +101,62 @@ class PassthroughRenderer(
         }
 
         Matrix.setIdentityM(texMatrix, 0)
-        Matrix.setIdentityM(cropMatrix, 0)
+        Matrix.setIdentityM(transformMatrix, 0)
         Log.i(TAG, "PassthroughRenderer surface created. Texture ID: $textureId")
     }
 
     fun onSurfaceChanged(width: Int, height: Int) {
         screenWidth = width
         screenHeight = height
-        updateCropMatrix()
     }
 
     fun setCameraPreviewSize(width: Int, height: Int) {
         cameraWidth = width
         cameraHeight = height
-        updateCropMatrix()
     }
 
-    private fun updateCropMatrix() {
-        Matrix.setIdentityM(cropMatrix, 0)
-        if (screenWidth <= 0 || screenHeight <= 0 || cameraWidth <= 0 || cameraHeight <= 0) return
-
-        val screenAspect = screenWidth.toFloat() / screenHeight.toFloat()
-        val cameraAspect = cameraWidth.toFloat() / cameraHeight.toFloat()
-
-        var scaleX = 1.0f
-        var scaleY = 1.0f
-
-        // Center-crop calculation: fill screen without stretching
-        if (screenAspect > cameraAspect) {
-            scaleY = cameraAspect / screenAspect
-        } else {
-            scaleX = screenAspect / cameraAspect
-        }
-
-        // Apply scale centered around (0.5, 0.5)
-        Matrix.translateM(cropMatrix, 0, 0.5f, 0.5f, 0.0f)
-        Matrix.scaleM(cropMatrix, 0, scaleX, scaleY, 1.0f)
-        Matrix.translateM(cropMatrix, 0, -0.5f, -0.5f, 0.0f)
+    fun setCameraRotation(rotation: Int) {
+        cameraRotationDegrees = (rotation % 360 + 360) % 360
+        Log.i(TAG, "Passthrough camera rotation set to: $cameraRotationDegrees")
     }
 
     override fun onFrameAvailable(st: SurfaceTexture?) {
         isFrameAvailable = true
         onFrameAvailableListener()
+    }
+
+    /**
+     * Dynamically computes the unstretched center-crop and upright rotation matrix for a specific viewport.
+     */
+    private fun updateTransformMatrix(vpWidth: Int, vpHeight: Int) {
+        Matrix.setIdentityM(transformMatrix, 0)
+        if (vpWidth <= 0 || vpHeight <= 0 || cameraWidth <= 0 || cameraHeight <= 0) return
+
+        val vpAspect = vpWidth.toFloat() / vpHeight.toFloat()
+        // If rotated by 90 or 270 degrees, effective camera width and height are swapped
+        val isSwapped = (cameraRotationDegrees == 90 || cameraRotationDegrees == 270)
+        val camW = if (isSwapped) cameraHeight.toFloat() else cameraWidth.toFloat()
+        val camH = if (isSwapped) cameraWidth.toFloat() else cameraHeight.toFloat()
+        val camAspect = camW / camH
+
+        var scaleX = 1.0f
+        var scaleY = 1.0f
+
+        // Center-crop (aspect-fill) calculation: fills viewport completely without stretching
+        if (vpAspect > camAspect) {
+            scaleY = camAspect / vpAspect
+        } else {
+            scaleX = vpAspect / camAspect
+        }
+
+        // 1. Move UV origin to center (0.5, 0.5)
+        Matrix.translateM(transformMatrix, 0, 0.5f, 0.5f, 0.0f)
+        // 2. Rotate UV around center to make camera upright
+        Matrix.rotateM(transformMatrix, 0, -cameraRotationDegrees.toFloat(), 0.0f, 0.0f, 1.0f)
+        // 3. Apply aspect ratio crop scale
+        Matrix.scaleM(transformMatrix, 0, scaleX, scaleY, 1.0f)
+        // 4. Move UV origin back
+        Matrix.translateM(transformMatrix, 0, -0.5f, -0.5f, 0.0f)
     }
 
     /**
@@ -157,11 +177,13 @@ class PassthroughRenderer(
             }
         }
 
+        updateTransformMatrix(width, height)
+
         GLES30.glUseProgram(program)
 
         // Pass matrices
         GLES30.glUniformMatrix4fv(uTexMatrixLoc, 1, false, texMatrix, 0)
-        GLES30.glUniformMatrix4fv(uCropMatrixLoc, 1, false, cropMatrix, 0)
+        GLES30.glUniformMatrix4fv(uTransformMatrixLoc, 1, false, transformMatrix, 0)
 
         // Bind OES texture
         GLES30.glActiveTexture(GLES30.GL_TEXTURE0)
@@ -198,4 +220,3 @@ class PassthroughRenderer(
         }
     }
 }
-

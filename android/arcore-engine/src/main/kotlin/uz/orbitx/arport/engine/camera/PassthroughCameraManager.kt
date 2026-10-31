@@ -3,10 +3,12 @@ package uz.orbitx.arport.engine.camera
 import android.content.Context
 import android.graphics.SurfaceTexture
 import android.hardware.camera2.CaptureRequest
+import android.os.Build
 import android.util.Log
 import android.util.Range
 import android.util.Size
 import android.view.Surface
+import android.view.WindowManager
 import androidx.camera.camera2.interop.Camera2Interop
 import androidx.camera.core.Camera
 import androidx.camera.core.CameraSelector
@@ -26,7 +28,8 @@ class PassthroughCameraManager(
     private val cameraId: String,
     private val resolution: String,
     private val targetFps: Int,
-    private val onPreviewSizeKnown: (width: Int, height: Int) -> Unit
+    private val onPreviewSizeKnown: (width: Int, height: Int) -> Unit,
+    private val onRotationDegreesKnown: ((Int) -> Unit)? = null
 ) {
     companion object {
         private const val TAG = "ARPort_CameraMgr"
@@ -62,9 +65,17 @@ class PassthroughCameraManager(
         }
         onPreviewSizeKnown(targetSize.width, targetSize.height)
 
+        val displayRotation = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            context.display?.rotation ?: Surface.ROTATION_90
+        } else {
+            @Suppress("DEPRECATION")
+            (context.getSystemService(Context.WINDOW_SERVICE) as? WindowManager)?.defaultDisplay?.rotation ?: Surface.ROTATION_90
+        }
+
         // 2. Camera2 low-latency capture settings (TZ 5.1)
         val previewBuilder = Preview.Builder()
             .setTargetResolution(targetSize)
+            .setTargetRotation(displayRotation)
 
         val camera2Extender = Camera2Interop.Extender(previewBuilder)
         // Continuous auto-focus
@@ -95,6 +106,11 @@ class PassthroughCameraManager(
         preview?.setSurfaceProvider { request ->
             surfaceTexture.setDefaultBufferSize(request.resolution.width, request.resolution.height)
             onPreviewSizeKnown(request.resolution.width, request.resolution.height)
+
+            request.setTransformationInfoListener(ContextCompat.getMainExecutor(context)) { info ->
+                Log.i(TAG, "TransformationInfo: rotationDegrees=${info.rotationDegrees}, cropRect=${info.cropRect}")
+                onRotationDegreesKnown?.invoke(info.rotationDegrees)
+            }
 
             surface?.release()
             surface = Surface(surfaceTexture)
@@ -143,4 +159,3 @@ class PassthroughCameraManager(
         camera = null
     }
 }
-

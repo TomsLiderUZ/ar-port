@@ -66,8 +66,10 @@ class TrackingManager(
     // Cached temporary matrices
     private val tempSensorMatrix = FloatArray(16)
     private val tempRemappedMatrix = FloatArray(16)
+    private val glSensorMatrix = FloatArray(16)
     private val cameraViewMatrix = FloatArray(16)
     private val eyeTranslationMatrix = FloatArray(16)
+    private var hasInitialRecenter = false
 
     init {
         // Find best available rotation sensor
@@ -143,16 +145,16 @@ class TrackingManager(
             Surface.ROTATION_90 -> {
                 SensorManager.remapCoordinateSystem(
                     tempSensorMatrix,
-                    SensorManager.AXIS_Y,
-                    SensorManager.AXIS_MINUS_X,
+                    SensorManager.AXIS_MINUS_Y,
+                    SensorManager.AXIS_X,
                     tempRemappedMatrix
                 )
             }
             Surface.ROTATION_270 -> {
                 SensorManager.remapCoordinateSystem(
                     tempSensorMatrix,
-                    SensorManager.AXIS_MINUS_Y,
-                    SensorManager.AXIS_X,
+                    SensorManager.AXIS_Y,
+                    SensorManager.AXIS_MINUS_X,
                     tempRemappedMatrix
                 )
             }
@@ -169,8 +171,17 @@ class TrackingManager(
             }
         }
 
+        // Remap from Android Earth coordinate system (Z=Up, Y=North, X=East)
+        // to OpenGL World coordinate system (Y=Up, -Z=North, X=East)
+        SensorManager.remapCoordinateSystem(
+            tempRemappedMatrix,
+            SensorManager.AXIS_X,
+            SensorManager.AXIS_Z,
+            glSensorMatrix
+        )
+
         // Convert remapped matrix to quaternion
-        val currentQ = Quaternion.fromRotationMatrix(tempRemappedMatrix)
+        val currentQ = Quaternion.fromRotationMatrix(glSensorMatrix)
         val nowNs = event.timestamp
 
         synchronized(lock) {
@@ -191,6 +202,12 @@ class TrackingManager(
                 val smoothed = Quaternion.slerp(smoothedQuaternion, rawQuaternion, 0.82f)
                 smoothedQuaternion.set(smoothed)
                 predictedQuaternion.set(smoothed)
+            }
+
+            if (!hasInitialRecenter) {
+                val currentYaw = predictedQuaternion.getYaw()
+                recenterOffsetQuaternion = Quaternion.fromAxisAngle(0f, 1f, 0f, currentYaw)
+                hasInitialRecenter = true
             }
         }
     }

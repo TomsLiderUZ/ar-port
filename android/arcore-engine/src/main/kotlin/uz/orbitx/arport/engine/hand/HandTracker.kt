@@ -7,6 +7,7 @@ import androidx.annotation.OptIn
 import androidx.camera.core.ExperimentalGetImage
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
+import com.google.mediapipe.framework.image.BitmapImageBuilder
 import com.google.mediapipe.framework.image.MediaImageBuilder
 import com.google.mediapipe.tasks.core.BaseOptions
 import com.google.mediapipe.tasks.core.Delegate
@@ -23,7 +24,7 @@ import kotlin.math.tan
 
 /**
  * High-performance Hand Tracker utilizing Google MediaPipe Tasks Vision
- * running on GPU delegate with One-Euro smoothing and 3D ray projection.
+ * running on CPU delegate (XNNPACK) with One-Euro smoothing and 3D ray projection.
  */
 class HandTracker(
     private val context: Context,
@@ -59,9 +60,9 @@ class HandTracker(
                     .setBaseOptions(baseOptions)
                     .setRunningMode(RunningMode.LIVE_STREAM)
                     .setNumHands(2)
-                    .setMinHandDetectionConfidence(0.5f)
-                    .setMinHandPresenceConfidence(0.5f)
-                    .setMinTrackingConfidence(0.5f)
+                    .setMinHandDetectionConfidence(0.35f)
+                    .setMinHandPresenceConfidence(0.35f)
+                    .setMinTrackingConfidence(0.35f)
                     .setResultListener { result, _ ->
                         processResult(result)
                     }
@@ -81,19 +82,19 @@ class HandTracker(
     @OptIn(ExperimentalGetImage::class)
     override fun analyze(imageProxy: ImageProxy) {
         val landmarker = handLandmarker
-        val mediaImage = imageProxy.image
 
-        if (!isInitialized || landmarker == null || mediaImage == null) {
+        if (!isInitialized || landmarker == null) {
             imageProxy.close()
             return
         }
 
         try {
-            val timestampMs = SystemClock.uptimeMillis()
-            val mpImage = MediaImageBuilder(mediaImage).build()
+            val bitmap = imageProxy.toBitmap()
+            val mpImage = BitmapImageBuilder(bitmap).build()
             val imageProcessingOptions = ImageProcessingOptions.builder()
                 .setRotationDegrees(imageProxy.imageInfo.rotationDegrees)
                 .build()
+            val timestampMs = SystemClock.uptimeMillis()
             landmarker.detectAsync(mpImage, imageProcessingOptions, timestampMs)
             fpsTracker.onFrameRendered(imageProxy.imageInfo.timestamp)
         } catch (e: Exception) {

@@ -14,6 +14,7 @@ import android.os.Looper
 import android.view.Gravity
 import android.view.HapticFeedbackConstants
 import android.view.MotionEvent
+import android.view.Surface
 import android.view.View
 import android.view.Window
 import android.view.WindowManager
@@ -94,6 +95,7 @@ class ArActivity : FragmentActivity() {
     private lateinit var modeToggleButton: TextView
     private lateinit var actionRow: LinearLayout
     private lateinit var cornerExitButton: TextView
+    private var cameraRotationDegrees: Int = 90
 
     private val mainHandler = Handler(Looper.getMainLooper())
     private var isHudActive = true
@@ -599,6 +601,29 @@ class ArActivity : FragmentActivity() {
 
         dialogLayout.addView(glassRow)
 
+        // Camera Rotation Adjustment Button
+        val camRotBtn = TextView(this).apply {
+            text = "📷 Kamera burchagi: $cameraRotationDegrees°"
+            textSize = 12f
+            setPadding(16, 12, 16, 12)
+            setTextColor(Color.WHITE)
+            gravity = Gravity.CENTER
+            background = GradientDrawable().apply {
+                setColor(Color.parseColor("#44333333"))
+                cornerRadius = 18f
+                setStroke(1, Color.parseColor("#33FFFFFF"))
+            }
+            setOnClickListener {
+                cameraRotationDegrees = (cameraRotationDegrees + 90) % 360
+                arRenderer?.setCameraRotation(cameraRotationDegrees)
+                text = "📷 Kamera burchagi: $cameraRotationDegrees°"
+            }
+        }
+        val camRotParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+            setMargins(0, 10, 0, 10)
+        }
+        dialogLayout.addView(camRotBtn, camRotParams)
+
         // Done Button
         val doneBtn = TextView(this).apply {
             text = "Tayyor"
@@ -618,6 +643,13 @@ class ArActivity : FragmentActivity() {
 
     private fun startCameraStream(surfaceTexture: android.graphics.SurfaceTexture) {
         try {
+            val displayRotation = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                display?.rotation ?: Surface.ROTATION_90
+            } else {
+                @Suppress("DEPRECATION")
+                windowManager.defaultDisplay.rotation
+            }
+
             val cm = PassthroughCameraManager(
                 context = this,
                 lifecycleOwner = this,
@@ -626,12 +658,18 @@ class ArActivity : FragmentActivity() {
                 targetFps = targetFps,
                 onPreviewSizeKnown = { width, height ->
                     arRenderer?.setCameraPreviewSize(width, height)
+                },
+                onRotationDegreesKnown = { rotation ->
+                    cameraRotationDegrees = rotation
+                    arRenderer?.setCameraRotation(rotation)
                 }
             )
 
             // Setup ImageAnalysis for 30 FPS hand landmark tracking (TZ 6.1)
             val imageAnalysis = androidx.camera.core.ImageAnalysis.Builder()
                 .setTargetResolution(android.util.Size(640, 480))
+                .setTargetRotation(displayRotation)
+                .setOutputImageFormat(androidx.camera.core.ImageAnalysis.OUTPUT_IMAGE_FORMAT_RGBA_8888)
                 .setBackpressureStrategy(androidx.camera.core.ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                 .build()
 
