@@ -1,0 +1,24 @@
+{
+  "@@locale": "uz",
+  "appTitle": "AR Port",
+  "launchAr": "AR ni ishga tushirish",
+  "viewModeTitle": "Ko'rinish rejimi",
+  "modeStereo": "2 ko'zli (Stereo)",
+  "modeNormal": "Oddiy (To'liq ekran)",
+  "deviceSettings": "Qurilma sozlamalari",
+  "camera": "Kamera",
+  "microphone": "Mikrofon",
+  "audioOutput": "Karnay / Quloqchin",
+  "handCalibration": "Qo'l kuzatuvi kalibratsiyasi",
+  "ipdAndLens": "IPD va linza turi",
+  "gyroMissingTitle": "Giroskop topilmadi",
+  "gyroMissingMessage": "Qurilmangizda giroskop topilmadi. AR Port ishlashi uchun giroskop kerak.",
+  "btnExit": "Chiqish",
+  "warning3Dof": "Faqat burilish kuzatiladi (3DoF)",
+  "permissionCamera": "Kamera ruxsati",
+  "permissionMic": "Mikrofon ruxsati",
+  "permissionBluetooth": "Bluetooth garnitura",
+  "settings": "Sozlamalar",
+  "about": "Haqida"
+}
+

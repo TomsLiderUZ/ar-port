@@ -1,30 +1,34 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
 import 'package:ar_port/main.dart';
+import 'package:ar_port/features/splash/splash_screen.dart';
+import 'package:ar_port/features/launcher_menu/launcher_menu_screen.dart';
+import 'package:ar_port/widgets/ios_primary_button.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  testWidgets('Splash screen loads and transitions to LauncherMenuScreen', (WidgetTester tester) async {
+    // Set a realistic phone size for testing
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 2.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    await tester.pumpWidget(const ArPortApp());
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+    // Initially on Splash Screen
+    expect(find.byType(SplashScreen), findsOneWidget);
+    expect(find.text('Spatial Headset OS'), findsOneWidget);
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    // Advance timer past splash duration (1000ms + animation 350ms)
+    await tester.pump(const Duration(milliseconds: 1100));
+    await tester.pumpAndSettle();
+
+    // Now on Launcher Menu
+    expect(find.byType(LauncherMenuScreen), findsOneWidget);
+    expect(find.text('AR Port'), findsWidgets);
+    expect(find.text('QURILMA SOZLAMALARI'), findsOneWidget);
+    expect(find.text('Kamera'), findsOneWidget);
+    expect(find.byType(IosPrimaryButton), findsOneWidget);
+    expect(find.text('AR ni ishga tushirish'), findsOneWidget);
   });
 }

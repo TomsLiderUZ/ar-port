@@ -8,8 +8,8 @@ Ushbu hujjat har bir bosqich natijasini, qilingan ishlarni va ma'lum muammolarni
 
 | Qadam | Nomi | Holat | Qaydlar |
 |---|---|---|---|
-| **1** | Muhit, loyiha skeleti va hujjatlar | ✅ Bajarildi | Flutter 3.47.9, JDK 17, Android SDK 35/36 o'rnatildi, arcore-engine kutubxonasi ulandi |
-| **2** | Flutter UI qobig'i: tema, iOS dizayn tizimi, Splash | ⏳ Kutilmoqda | - |
+| **1** | Muhit, loyiha skeleti va hujjatlar | ✅ Bajarildi | Flutter 3.47.9, JDK 17, Android SDK 35/36/37 o'rnatildi, arcore-engine moduli ulandi |
+| **2** | Flutter UI qobig'i: tema, iOS dizayn tizimi, Splash | ✅ Bajarildi | iOS UI komponentlari, Dynamic color/tizim temasi, Splash (≤1.2s), L10n (`uz`, `ru`, `en`) |
 | **3** | Qurilma tekshiruvi (giroskop) va ruxsatlar oqimi | ⏳ Kutilmoqda | - |
 | **4** | Boshlang'ich menyu (rejim + qurilma sozlamalari) | ⏳ Kutilmoqda | - |
 | **5** | AR dvigatel yadrosi: ArActivity, GL, kamera passthrough | ⏳ Kutilmoqda | - |
@@ -33,9 +33,9 @@ Ushbu hujjat har bir bosqich natijasini, qilingan ishlarni va ma'lum muammolarni
 ## QADAM 1 Batafsil Hisoboti
 - **Sana:** 2026-10-31
 - **Bajarildi:**
-  1. Dasturlash muhiti tayyorlandi: Eclipse Temurin OpenJDK 17 (`C:\Users\Toms\tools\jdk-17.0.20.1+1`), Android SDK platform 35 & 36, build-tools 35.0.0 & 36.0.0, platform-tools, Flutter 3.47.9 & Dart 3.13.7. Doimiy foydalanuvchi muhit o'zgaruvchilari sozlandi.
+  1. Dasturlash muhiti tayyorlandi: Eclipse Temurin OpenJDK 17 (`C:\Users\Toms\tools\jdk-17.0.20.1+1`), Android SDK platform 35 & 36 & 37, build-tools 35.0.0 & 36.0.0, platform-tools, Flutter 3.47.9 & Dart 3.13.7. Doimiy foydalanuvchi muhit o'zgaruvchilari sozlandi.
   2. Flutter loyihasi `uz.orbitx.arport` paket identifikatori va "AR Port" nomi bilan yaratildi.
-  3. `android/app/build.gradle.kts` da `minSdk = 29`, `targetSdk = 35`, `compileSdk = 35`, `applicationId = "uz.orbitx.arport"` belgilandi.
+  3. `android/app/build.gradle.kts` da `minSdk = 29`, `targetSdk = 35`, `compileSdk = 37`, `applicationId = "uz.orbitx.arport"` belgilandi.
   4. Kotlin native moduli `android/arcore-engine` yaratildi va `settings.gradle.kts` hamda `app/build.gradle.kts` ga library sifatida ulandi.
   5. Kutubxonalar qo'shildi:
      - Flutter: `dynamic_color`, `permission_handler`, `shared_preferences`, `flutter_localizations`.
@@ -44,3 +44,21 @@ Ushbu hujjat har bir bosqich natijasini, qilingan ishlarni va ma'lum muammolarni
   7. Hujjatlar: `docs/TZ.md`, `docs/ARCHITECTURE.md`, `docs/RISKS.md`, `docs/PROGRESS.md` yaratildi.
   8. Git repozitoriysi initsializatsiya qilindi.
 
+---
+
+## QADAM 2 Batafsil Hisoboti
+- **Sana:** 2026-10-31
+- **Bajarildi:**
+  1. Tizim temasi (qora/och) va `dynamic_color` (accent rangi) bilan avtomatik moslashuvchi iOS dizayn mavzusi (`AppTheme`) yaratildi; zaxira rang `#0A84FF`.
+  2. Qayta ishlatiladigan to'liq iOS komponentlar to'plami yaratildi:
+     - `IosLargeTitle`: iOS uslubidagi katta sarlavha.
+     - `IosCard`: 22 dp burchakli yumaloq karta.
+     - `IosInsetGroup`: Guruhlangan ro'yxat, yuqori sarlavha, pastki izoh va avtomatik 0.5 dp ajratgichlar.
+     - `IosListTile`: Yengil haptic va bosilish animatsiyasiga ega qator.
+     - `IosPrimaryButton`: Spring bosilish animatsiyasi va haptic feedbackli asosiy tugma.
+     - `IosSegmentedControl`: Silliq harakatlanuvchi pill va spring animatsiyali segmentli tanlov.
+     - `IosSwitch` & `IosSlider`: iOS standartidagi o'chirib-yoqish va slayder boshqaruvlari.
+     - `IosGlassDialog`: `BackdropFilter` (sigma 28), frosted blur va iOS tugmalariga ega oyna.
+  3. Splash ekrani yaratildi (`≤1.2 s`, 1000 ms animatsiyali spatial logo + matn, avtomatik Launcher ekraniga o'tish).
+  4. Lokalizatsiya tizimi (`l10n.yaml`) ulandi; O'zbekcha (`uz` asosiy), ruscha (`ru`), inglizcha (`en`) ARB lug'atlari yaratildi.
+  5. Widget testlari yozildi va `flutter test` orqali to'liq tasdiqlandi.

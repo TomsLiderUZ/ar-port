@@ -1,0 +1,24 @@
+{
+  "@@locale": "ru",
+  "appTitle": "AR Port",
+  "launchAr": "Запустить AR",
+  "viewModeTitle": "Режим отображения",
+  "modeStereo": "Стерео (2 глаза)",
+  "modeNormal": "Обычный (полный экран)",
+  "deviceSettings": "Настройки устройства",
+  "camera": "Камера",
+  "microphone": "Микрофон",
+  "audioOutput": "Динамик / Наушники",
+  "handCalibration": "Калибровка трекинга рук",
+  "ipdAndLens": "IPD и тип линзы",
+  "gyroMissingTitle": "Гироскоп не найден",
+  "gyroMissingMessage": "На вашем устройстве нет гироскопа. Для работы AR Port необходим гироскоп.",
+  "btnExit": "Выход",
+  "warning3Dof": "Отслеживается только вращение (3DoF)",
+  "permissionCamera": "Разрешение камеры",
+  "permissionMic": "Разрешение микрофона",
+  "permissionBluetooth": "Bluetooth гарнитура",
+  "settings": "Настройки",
+  "about": "О программе"
+}
+

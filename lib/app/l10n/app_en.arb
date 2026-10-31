@@ -1,0 +1,24 @@
+{
+  "@@locale": "en",
+  "appTitle": "AR Port",
+  "launchAr": "Launch AR",
+  "viewModeTitle": "Display Mode",
+  "modeStereo": "2-Eye (Stereo)",
+  "modeNormal": "Normal (Fullscreen)",
+  "deviceSettings": "Device Settings",
+  "camera": "Camera",
+  "microphone": "Microphone",
+  "audioOutput": "Speaker / Headphones",
+  "handCalibration": "Hand Tracking Calibration",
+  "ipdAndLens": "IPD & Lens Profile",
+  "gyroMissingTitle": "Gyroscope Not Found",
+  "gyroMissingMessage": "No gyroscope was found on your device. AR Port requires a gyroscope to operate.",
+  "btnExit": "Exit",
+  "warning3Dof": "Only rotation is tracked (3DoF)",
+  "permissionCamera": "Camera Permission",
+  "permissionMic": "Microphone Permission",
+  "permissionBluetooth": "Bluetooth Headset",
+  "settings": "Settings",
+  "about": "About"
+}
+
