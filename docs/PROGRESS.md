@@ -12,7 +12,7 @@ Ushbu hujjat har bir bosqich natijasini, qilingan ishlarni va ma'lum muammolarni
 | **2** | Flutter UI qobig'i: tema, iOS dizayn tizimi, Splash | ✅ Bajarildi | iOS UI komponentlari, Dynamic color/tizim temasi, Splash (≤1.2s), L10n (`uz`, `ru`, `en`) |
 | **3** | Qurilma tekshiruvi (giroskop) va ruxsatlar oqimi | ✅ Bajarildi | Native `DeviceEvaluator`, MethodChannel, giroskop yo'qligida bloklash dialogi, 3DoF/6DoF qaror mantiqi, ruxsatlar oqimi |
 | **4** | Boshlang'ich menyu (rejim + qurilma sozlamalari) | ✅ Bajarildi | Stereo/oddiy rejim, Camera/Audio/IPD/Lens sozlamalari, SharedPreferences, `ArActivity` ishga tushishi |
-| **5** | AR dvigatel yadrosi: ArActivity, GL, kamera passthrough | ⏳ Kutilmoqda | - |
+| **5** | AR dvigatel yadrosi: ArActivity, GL, kamera passthrough | ✅ Bajarildi | OpenGL ES 3.0, CameraX OES Zero-Copy rendering, past kechikish sozlamalari, FPS tracker, Liquid Glass HUD |
 | **6** | Harakat kuzatuvi va fazoda qotirish (world-lock) | ⏳ Kutilmoqda | - |
 | **7** | Stereo rejim | ⏳ Kutilmoqda | - |
 | **8** | Fazoviy oyna menejeri va yuza (surface) tizimi | ⏳ Kutilmoqda | - |
@@ -50,15 +50,7 @@ Ushbu hujjat har bir bosqich natijasini, qilingan ishlarni va ma'lum muammolarni
 - **Sana:** 2026-10-31
 - **Bajarildi:**
   1. Tizim temasi (qora/och) va `dynamic_color` (Material You) bilan avtomatik moslashuvchi, zaxirada `#0A84FF` (iOS ko'k) rangidan foydalanuvchi to'liq iOS mavzusi (`AppTheme`) yaratildi.
-  2. Qayta ishlatiladigan to'liq iOS komponentlar to'plami yaratildi:
-     - `IosLargeTitle`: iOS uslubidagi katta sarlavha.
-     - `IosCard`: 22 dp burchakli yumaloq karta.
-     - `IosInsetGroup`: Guruhlangan ro'yxat, yuqori sarlavha, pastki izoh va avtomatik 0.5 dp ajratgichlar.
-     - `IosListTile`: Yengil haptic va bosilish animatsiyasiga ega qator.
-     - `IosPrimaryButton`: Spring bosilish animatsiyasi va haptic feedbackli asosiy tugma.
-     - `IosSegmentedControl`: Silliq harakatlanuvchi pill va spring animatsiyali segmentli tanlov.
-     - `IosSwitch` & `IosSlider`: iOS standartidagi o'chirib-yoqish va slayder boshqaruvlari.
-     - `IosGlassDialog`: `BackdropFilter` (sigma 28), frosted blur va iOS tugmalariga ega oyna.
+  2. Qayta ishlatiladigan to'liq iOS komponentlar to'plami yaratildi (`IosLargeTitle`, `IosCard`, `IosInsetGroup`, `IosListTile`, `IosPrimaryButton`, `IosSegmentedControl`, `IosSwitch`, `IosSlider`, `IosGlassDialog`).
   3. Splash ekrani yaratildi (`≤1.2 s`, 1000 ms animatsiyali spatial logo + matn, avtomatik Launcher ekraniga o'tish).
   4. Lokalizatsiya tizimi (`l10n.yaml`) ulandi; O'zbekcha (`uz` asosiy), ruscha (`ru`), inglizcha (`en`) ARB lug'atlari yaratildi.
   5. Widget testlari yozildi va `flutter test` orqali to'liq tasdiqlandi.
@@ -68,35 +60,31 @@ Ushbu hujjat har bir bosqich natijasini, qilingan ishlarni va ma'lum muammolarni
 ## QADAM 3 Batafsil Hisoboti
 - **Sana:** 2026-10-31
 - **Bajarildi:**
-  1. Native apparat tahlilchisi `DeviceEvaluator` (`arcore-engine` moduli) yaratildi:
-     - Giroskop va Rotation Vector (`SensorManager`)
-     - Orqa kamera (`CameraManager`)
-     - ARCore 6DoF mavjudligi (`ArCoreApk.checkAvailability`)
-     - OpenGL ES 3.0+ qo'llab-quvvatlanishi (`reqGlEsVersion >= 0x00030000`)
-     - RAM hajmi va past xotirali qurilma tekshiruvi (`ActivityManager.MemoryInfo`).
-  2. `MainActivity.kt` da `uz.orbitx.arport/device_capability` MethodChannel kanali ulandi.
-  3. Dart qatlamida `DeviceCapabilities`, `DeviceCapabilityChannel`, hamda TZ 4.2 talablariga to'liq mos keluvchi `DeviceCheckController` va `DeviceCheckResult` yaratildi:
-     - Giroskop yo'q bo'lsa: `isBlocked = true`, `BlockReason.gyroscopeMissing`, xabar va 'Chiqish' tugmali dialog.
-     - Giroskop bor, lekin ARCore yo'q bo'lsa: 3DoF rejimi, kichik ogohlantirish ("Faqat burilish kuzatiladi (3DoF)").
-     - ARCore qo'llansa: 6DoF rejimi.
-     - Kam RAM: yengil sifat rejimi tavsiyasi.
-  4. Ruxsatlar oqimi (`PermissionFlow`) yaratildi: Kamera (majburiy, rad etilsa sozlamalarga yo'naltiruvchi dialog), Mikrofon va Bluetooth (Android 12+) kontekstli so'rovlari.
-  5. LauncherMenuScreen interfeysiga real apparat holati bannerlari (6DoF / 3DoF / Bloklangan) va ruxsat tekshiruvi bog'landi.
-  6. To'liq birlik va widget testlari (`test/device_check_test.dart`) yozildi va barchasi (9 ta test) muvaffaqiyatli o'tdi.
+  1. Native apparat tahlilchisi `DeviceEvaluator` yaratildi (giroskop, kamera, ARCore 6DoF, GLES 3.0, RAM).
+  2. `MainActivity.kt` da MethodChannel bog'landi.
+  3. Dart qatlamida `DeviceCapabilities`, `DeviceCapabilityChannel`, hamda TZ 4.2 talablariga to'liq mos keluvchi `DeviceCheckController` va `DeviceCheckResult` yaratildi.
+  4. Ruxsatlar oqimi (`PermissionFlow`) yaratildi (Kamera majburiy, mikrofon, bluetooth).
+  5. `LauncherMenuScreen` ekraniga real apparat holati bannerlari bog'landi.
+  6. Testlar (`test/device_check_test.dart`) yozildi va tasdiqlandi.
 
 ---
 
 ## QADAM 4 Batafsil Hisoboti
 - **Sana:** 2026-10-31
 - **Bajarildi:**
-  1. Native apparat tahlilchilari yaratildi:
-     - `CameraEvaluator` (`uz.orbitx.arport/camera_list`): orqa kameralar, fokus uzunligi, keng burchak, 1080p/720p va 60fps/30fps aniqlash.
-     - `AudioEvaluator` (`uz.orbitx.arport/audio_devices`): kirish va chiqish audio qurilmalari (mikrofon, karnay, Bluetooth, USB) va marshrutlash.
-  2. Native `ArActivity` (landscape, to'liq ekranli immersive, `FLAG_KEEP_SCREEN_ON`) yaratildi va `AndroidManifest.xml` ga kiritildi; `MainActivity.kt` da `uz.orbitx.arport/launcher` orqali parametrlar (`viewMode`, `cameraId`, `resolution`, `targetFps`, `ipdMm`, `lensProfile`, `audioInput`, `audioOutput`) Intent extras orqali uzatildi.
-  3. Dart qatlamida `CameraListChannel`, `AudioDevicesChannel`, `ArLauncherChannel` hamda `LauncherPreferences` (SharedPreferences orqali barcha sozlamalarni saqlash va tiklash) yaratildi.
-  4. iOS interaktiv modal sheetlari yaratildi:
-     - `CameraSettingsSheet` (kamera linzasi, sifat 1080p/720p, 60/30 FPS)
-     - `AudioSettingsSheet` (mikrofon va karnay/quloqchin tanlash)
-     - `IpdLensSheet` (Stereo rejimda IPD 55–75 mm slayderi va linza profili)
-     - `HandCalibrationSheet` (qo'l kursorini kalibrlash bo'yicha ko'rsatma)
-  5. `LauncherMenuScreen` to'liq sozlamalar va rejimlar bilan boyitildi, birlik va widget testlari (`test/launcher_menu_test.dart`) yozildi va barcha 12 ta test muvaffaqiyatli o'tdi.
+  1. Native apparat tahlilchilari (`CameraEvaluator`, `AudioEvaluator`) yaratildi.
+  2. Native `ArActivity` (landscape, to'liq ekranli immersive, `FLAG_KEEP_SCREEN_ON`) yaratildi va `AndroidManifest.xml` ga kiritildi; `MainActivity.kt` da Intent extras orqali parametrlar uzatildi.
+  3. Dart qatlamida `CameraListChannel`, `AudioDevicesChannel`, `ArLauncherChannel` hamda `LauncherPreferences` yaratildi.
+  4. iOS interaktiv modal sheetlari (`CameraSettingsSheet`, `AudioSettingsSheet`, `IpdLensSheet`, `HandCalibrationSheet`) yaratildi.
+  5. `LauncherMenuScreen` to'liq sozlamalar va rejimlar bilan boyitildi, barcha testlar muvaffaqiyatli o'tdi.
+
+---
+
+## QADAM 5 Batafsil Hisoboti
+- **Sana:** 2026-10-31
+- **Bajarildi:**
+  1. OpenGL ES 3.0 shader va dastur boshqaruvi (`GLHelper`): `GL_TEXTURE_EXTERNAL_OES` teksturasi, vertex/fragment shader kompilyatsiyasi va bog'lanishi.
+  2. Zero-Copy GPU Passthrough Renderer (`PassthroughRenderer`): CameraX `SurfaceTexture` dan kadrni to'g'ridan-to'g'ri OES teksturasiga olib, to'liq ekranli to'rtburchakka center-crop aspekt nisbati bilan chizadi.
+  3. Past kechikishli CameraX boshqaruvchisi (`PassthroughCameraManager`): uzluksiz avtofokus (`CONTROL_AF_MODE_CONTINUOUS_PICTURE`), avto-ekspozitsiya, EIS o'chirilgan (`CONTROL_VIDEO_STABILIZATION_MODE_OFF`), 30/60 FPS diapazoni.
+  4. Kadr kechikishi va FPS o'lchovchi tizim (`FpsTracker`): `SurfaceTexture.timestamp` (sensor vaqti) va GPU render vaqti orasidagi kechikishni (motion-to-frame arrival latency) eksponensial o'rtacha bilan hisoblaydi.
+  5. `ArActivity` render sikli (`ArEngineRenderer`): `GLSurfaceView` EGL 3.0, `RENDERMODE_WHEN_DIRTY`, stereo va oddiy ko'rinishlarni chizish, Liquid Glass uslubidagi jonli Debug HUD (FPS, kechikish, rejim ko'rsatkichlari) va zaxira chiqish tugmasi (`✕`).
