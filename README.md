@@ -10,7 +10,7 @@
 * **Joylashuvi:** [`dist/ar-port.apk`](file:///C:/ItzToms%20(all%20files)/ALL%20CODES/Demo%20Productions/ar-port/dist/ar-port.apk)
 * **Paket ID:** `uz.orbitx.arport`
 * **Versiya:** `1.0.0` (Build `1`)
-* **Hajmi:** **79.05 MB** (`82,886,363` bayt)
+* **Hajmi:** **79.04 MB** (`82,886,431` bayt)
 * **Target ABI:** `arm64-v8a` (+ `armeabi-v7a`, `x86_64`)
 * **Minimal Android talabi:** Android 10 (API 29) yoki undan yuqori
 * **Majburiy datchik:** Giroskop (Gyroscope sensor)
@@ -18,7 +18,7 @@
 
 ### 🔐 SHA-256 Nazorat Summasi (Checksum)
 ```text
-B10B175D307C6D520D977B71720D4E331581DF702B279B2E85BEB1629C709BF2
+597C13278F2317A7E6ECFC598A4DD0525C6EAC49EAC3512BF369C03223251E27
 ```
 
 ---

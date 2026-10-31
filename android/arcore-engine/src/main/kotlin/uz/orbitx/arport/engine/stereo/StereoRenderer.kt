@@ -54,13 +54,9 @@ void main() {
     float factor = 1.0 + uDistortionCoeffs.x * r2 + uDistortionCoeffs.y * r4;
     vec2 distortedCoord = uLensCenter + d * factor;
 
-    // Vignette black outside valid lens optical range
-    if (distortedCoord.x < 0.0 || distortedCoord.x > 1.0 ||
-        distortedCoord.y < 0.0 || distortedCoord.y > 1.0) {
-        fragColor = vec4(0.0, 0.0, 0.0, 1.0);
-    } else {
-        fragColor = texture(uEyeTexture, distortedCoord);
-    }
+    // Smoothly sample eye texture with edge clamp to prevent accidental black clipping
+    vec2 clampedCoord = clamp(distortedCoord, 0.0, 1.0);
+    fragColor = texture(uEyeTexture, clampedCoord);
 }
 """
 
@@ -198,12 +194,34 @@ void main() {
     }
 
     /**
+     * Rebinds Left Eye FBO after background blur pass.
+     * Preserves camera passthrough pixels in color buffer and clears only depth!
+     */
+    fun resumeLeftEye() {
+        GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, fboIds[0])
+        GLES30.glViewport(0, 0, eyeWidth, eyeHeight)
+        GLES30.glDepthMask(true)
+        GLES30.glClear(GLES30.GL_DEPTH_BUFFER_BIT)
+    }
+
+    /**
      * Binds Right Eye FBO and sets viewport for scene rendering.
      */
     fun beginRightEye() {
         GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, fboIds[1])
         GLES30.glViewport(0, 0, eyeWidth, eyeHeight)
         GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT or GLES30.GL_DEPTH_BUFFER_BIT)
+    }
+
+    /**
+     * Rebinds Right Eye FBO after background blur pass.
+     * Preserves camera passthrough pixels in color buffer and clears only depth!
+     */
+    fun resumeRightEye() {
+        GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, fboIds[1])
+        GLES30.glViewport(0, 0, eyeWidth, eyeHeight)
+        GLES30.glDepthMask(true)
+        GLES30.glClear(GLES30.GL_DEPTH_BUFFER_BIT)
     }
 
     /**

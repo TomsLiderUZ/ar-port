@@ -197,6 +197,8 @@ void main() {
 
         GLES30.glEnable(GLES30.GL_BLEND)
         GLES30.glBlendFunc(GLES30.GL_SRC_ALPHA, GLES30.GL_ONE_MINUS_SRC_ALPHA)
+        // Disable depth writing for translucent Liquid Glass to prevent Z-fighting and flickering
+        GLES30.glDepthMask(false)
 
         // Upload shared uniforms
         GLES30.glUniform2f(uScreenSizeLoc, screenWidth.toFloat(), screenHeight.toFloat())
@@ -267,6 +269,8 @@ void main() {
 
         GLES30.glDisableVertexAttribArray(0)
         GLES30.glDisableVertexAttribArray(1)
+        GLES30.glDepthMask(true)
+        GLES30.glDisable(GLES30.GL_BLEND)
     }
 
     fun release() {

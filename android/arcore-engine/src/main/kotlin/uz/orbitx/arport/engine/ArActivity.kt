@@ -92,6 +92,8 @@ class ArActivity : FragmentActivity() {
     private lateinit var leftHudTextView: TextView
     private lateinit var rightHudTextView: TextView
     private lateinit var modeToggleButton: TextView
+    private lateinit var actionRow: LinearLayout
+    private lateinit var cornerExitButton: TextView
 
     private val mainHandler = Handler(Looper.getMainLooper())
     private var isHudActive = true
@@ -207,30 +209,33 @@ class ArActivity : FragmentActivity() {
                 FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT)
             )
 
-            // 3. Liquid Glass Dual Debug HUD (Left Eye & Right Eye)
+            // 3. Liquid Glass Dual Debug HUD (Left Eye & Right Eye aligned in 50% split columns)
             leftHudTextView = createHudTextView()
-            val leftHudParams = FrameLayout.LayoutParams(
-                FrameLayout.LayoutParams.WRAP_CONTENT,
-                FrameLayout.LayoutParams.WRAP_CONTENT
-            ).apply {
-                gravity = Gravity.TOP or Gravity.START
-                setMargins(32, 32, 0, 0)
-            }
-            rootLayout.addView(leftHudTextView, leftHudParams)
-
             rightHudTextView = createHudTextView()
-            val rightHudParams = FrameLayout.LayoutParams(
-                FrameLayout.LayoutParams.WRAP_CONTENT,
-                FrameLayout.LayoutParams.WRAP_CONTENT
-            ).apply {
-                gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
-                setMargins(32, 32, 0, 0)
-            }
-            rootLayout.addView(rightHudTextView, rightHudParams)
-            updateHudVisibility()
 
-            // 4. Action Controls Bar (Top-Right)
-            val actionRow = LinearLayout(this).apply {
+            val dualHudContainer = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                layoutParams = FrameLayout.LayoutParams(
+                    FrameLayout.LayoutParams.MATCH_PARENT,
+                    FrameLayout.LayoutParams.WRAP_CONTENT
+                ).apply {
+                    gravity = Gravity.TOP or Gravity.START
+                    setMargins(20, 20, 20, 0)
+                }
+            }
+
+            val leftCell = FrameLayout(this)
+            leftCell.addView(leftHudTextView)
+            dualHudContainer.addView(leftCell, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1.0f))
+
+            val rightCell = FrameLayout(this)
+            rightCell.addView(rightHudTextView)
+            dualHudContainer.addView(rightCell, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1.0f))
+
+            rootLayout.addView(dualHudContainer)
+
+            // 4. Action Controls Bar (Top-Right, shown in Oddiy / Normal mode)
+            actionRow = LinearLayout(this).apply {
                 orientation = LinearLayout.HORIZONTAL
                 gravity = Gravity.CENTER_VERTICAL
             }
@@ -369,9 +374,30 @@ class ArActivity : FragmentActivity() {
                 FrameLayout.LayoutParams.WRAP_CONTENT
             ).apply {
                 gravity = Gravity.TOP or Gravity.END
-                setMargins(0, 32, 32, 0)
+                setMargins(0, 20, 20, 0)
             }
             rootLayout.addView(actionRow, actionParams)
+
+            // Minimalist Corner Exit Button for Stereo Mode
+            cornerExitButton = TextView(this).apply {
+                text = "✕"
+                textSize = 15f
+                setTextColor(Color.WHITE)
+                gravity = Gravity.CENTER
+                background = GradientDrawable().apply {
+                    setColor(Color.parseColor("#991C1C1E"))
+                    cornerRadius = 40f
+                    setStroke(1, Color.parseColor("#44FFFFFF"))
+                }
+                setOnClickListener { finish() }
+            }
+            val cornerExitParams = FrameLayout.LayoutParams(68, 68).apply {
+                gravity = Gravity.TOP or Gravity.END
+                setMargins(0, 20, 20, 0)
+            }
+            rootLayout.addView(cornerExitButton, cornerExitParams)
+
+            updateHudVisibility()
 
             setContentView(rootLayout)
             enableImmersiveMode()
@@ -390,9 +416,9 @@ class ArActivity : FragmentActivity() {
 
     private fun createHudTextView(): TextView {
         return TextView(this).apply {
-            textSize = 11f
+            textSize = 10f
             setTextColor(Color.WHITE)
-            setPadding(20, 12, 20, 12)
+            setPadding(16, 8, 16, 8)
             background = createGlassBackground()
             text = "AR Port • $viewMode | FPS: --"
         }
@@ -401,7 +427,7 @@ class ArActivity : FragmentActivity() {
     private fun createGlassBackground(): GradientDrawable {
         return GradientDrawable().apply {
             setColor(Color.parseColor("#991C1C1E"))
-            cornerRadius = 24f
+            cornerRadius = 20f
             setStroke(1, Color.parseColor("#44FFFFFF"))
         }
     }
@@ -414,7 +440,10 @@ class ArActivity : FragmentActivity() {
     }
 
     private fun updateHudVisibility() {
-        rightHudTextView.visibility = if (viewMode == "stereo") View.VISIBLE else View.GONE
+        val isStereo = (viewMode == "stereo")
+        rightHudTextView.visibility = if (isStereo) View.VISIBLE else View.GONE
+        actionRow.visibility = if (isStereo) View.GONE else View.VISIBLE
+        cornerExitButton.visibility = if (isStereo) View.VISIBLE else View.GONE
     }
 
     private fun showCalibrationDialog() {

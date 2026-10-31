@@ -56,12 +56,16 @@
 ## 3. Yakuniy Chiqarilish Fayli (dist/ar-port.apk)
 
 * **Fayl:** [`dist/ar-port.apk`](file:///C:/ItzToms%20(all%20files)/ALL%20CODES/Demo%20Productions/ar-port/dist/ar-port.apk)
-* **Hajmi:** **79.05 MB** (`82,886,431` bayt)
-* **SHA-256:** `B10B175D307C6D520D977B71720D4E331581DF702B279B2E85BEB1629C709BF2`
+* **Hajmi:** **79.04 MB** (`82,886,431` bayt)
+* **SHA-256:** `597C13278F2317A7E6ECFC598A4DD0525C6EAC49EAC3512BF369C03223251E27`
 * **Arxitekturalar:** `arm64-v8a`, `armeabi-v7a`, `x86_64`
 * **Optimizatsiya:** ProGuard / R8 code shrinking va resource shrinking
 * **Imzo:** Release Keystore (`docs/SIGNING.md`)
-* **Tuzatish (Hotfix):**
+* **Tuzatish (Hotfix & Optimizations):**
+  - **Stereo Rejimdagi Qora Fon Bartaraf Etildi:** `ArEngineRenderer` da kamera kadrini eye FBO ga chizgandan so'ng rang buferini o'chirib yuboruvchi ortiqcha `beginLeftEye()` o'rniga, faqat chuqurlikni tozalovchi (`resumeLeftEye()` / `resumeRightEye()`) kiritildi. Shuningdek, `StereoRenderer` barrel distorsiya shaderidagi keskin qora vinetka o'rniga `clamp(distortedCoord, 0.0, 1.0)` qo'llanib, kamera foni to'liq ochildi.
+  - **Giroskop Bijirlashini (Jitter & Lag) Yo'qotish:** `TrackingManager` dagi o'z-o'ziga bog'lanib qolgan regressiv bashorat (predictive feedback loop) to'xtatildi va to'g'ridan-to'g'ri sezgir `SLERP (alpha = 0.82f)` filtriga almashtirildi; fazodagi oynalar titramaydi, bosh burilishlariga silliq ergashadi.
+  - **GPU Yuklamasi va 60 FPS Optimizatsiyasi:** Ikkala ko'z uchun alohida 6 marta takrorlanayotgan Kawase blur passlari birlashtirildi — kamera kadrining bluri bitta o'tishda bajarilib, ikkala ko'zga umumiy tekstura sifatida uzatildi. Shaffof Liquid Glass oynalar chizilayotganda `glDepthMask(false)` qilinib, Z-fighting (shovqinli pirpirash) butunlay yo'qotildi.
+  - **Stereo HUD va UI O'rnatilishi:** Stereo rejimda 2D Android tugmalar qatori ko'zoynak ajratgichiga xalaqit bermasligi uchun yashirildi (foydalanuvchi 3D VR Floating Dock orqali boshqaradi) va yuqori HUD panellari 50/50 mutanosib ravishda chap va o'ng ko'z markaziga to'g'rilandi.
   - `ArTheme` mavzusi `Theme.AppCompat.NoActionBar` ga ulandi (AppCompatDelegate talabi qondirildi).
   - `ArActivity` klassi `FragmentActivity` ga o'tkazildi va `super.onCreate` hamda `onResume/onPause/onDestroy` to'liq himoyalovchi `try-catch` bloklari bilan o'raldi.
   - ProGuard R8 qoidalariga AppCompat va FragmentActivity qoidalari qo'shildi.

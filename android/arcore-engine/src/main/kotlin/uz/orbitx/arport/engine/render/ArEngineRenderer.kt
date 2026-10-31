@@ -281,15 +281,15 @@ class ArEngineRenderer(
                 GLES30.glDepthMask(false)
                 passthroughRenderer.draw(0, 0, eyeW, eyeH)
 
-                // Kawase blur pass on background for Left Eye
-                val blurredLeftTex = glassRenderer.performBlur(stereoRenderer.getLeftColorTexId())
+                // High-performance blur: compute once from camera feed and share between both eyes for smooth 60 FPS
+                val sharedBlurredBackdropTex = glassRenderer.performBlur(stereoRenderer.getLeftColorTexId())
 
-                stereoRenderer.beginLeftEye()
+                // Resume Left Eye FBO without wiping camera feed, resetting depth for 3D windows
+                stereoRenderer.resumeLeftEye()
                 GLES30.glEnable(GLES30.GL_DEPTH_TEST)
-                GLES30.glDepthMask(true)
                 trackingManager.getViewMatrix(viewMatrix, -eyeOffsetM)
                 Matrix.multiplyMM(vpMatrix, 0, projectionMatrix, 0, viewMatrix, 0)
-                windowRenderer.drawWindows(windowManager, viewMatrix, projectionMatrix, vpMatrix, blurredLeftTex, eyeW, eyeH, dtSec)
+                windowRenderer.drawWindows(windowManager, viewMatrix, projectionMatrix, vpMatrix, sharedBlurredBackdropTex, eyeW, eyeH, dtSec)
                 handRenderer.drawHands(visibleHands, windowManager, viewMatrix, projectionMatrix)
 
                 // 2. Right Eye Pass
@@ -298,15 +298,12 @@ class ArEngineRenderer(
                 GLES30.glDepthMask(false)
                 passthroughRenderer.draw(0, 0, eyeW, eyeH)
 
-                // Kawase blur pass on background for Right Eye
-                val blurredRightTex = glassRenderer.performBlur(stereoRenderer.getRightColorTexId())
-
-                stereoRenderer.beginRightEye()
+                // Resume Right Eye FBO without wiping camera feed, reusing shared blurred backdrop
+                stereoRenderer.resumeRightEye()
                 GLES30.glEnable(GLES30.GL_DEPTH_TEST)
-                GLES30.glDepthMask(true)
                 trackingManager.getViewMatrix(viewMatrix, eyeOffsetM)
                 Matrix.multiplyMM(vpMatrix, 0, projectionMatrix, 0, viewMatrix, 0)
-                windowRenderer.drawWindows(windowManager, viewMatrix, projectionMatrix, vpMatrix, blurredRightTex, eyeW, eyeH, dtSec)
+                windowRenderer.drawWindows(windowManager, viewMatrix, projectionMatrix, vpMatrix, sharedBlurredBackdropTex, eyeW, eyeH, dtSec)
                 handRenderer.drawHands(visibleHands, windowManager, viewMatrix, projectionMatrix)
 
                 // 3. Post-processing Barrel Distortion Pass

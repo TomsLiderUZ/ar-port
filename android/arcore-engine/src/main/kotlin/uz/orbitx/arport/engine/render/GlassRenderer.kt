@@ -76,8 +76,8 @@ void main() {
     var blurHeight = 270
         private set
 
-    // Configuration
-    var isLowSpecMode: Boolean = false
+    // Configuration (Low Spec Mode enabled by default for rock-solid 60 FPS on mobile GPUs)
+    var isLowSpecMode: Boolean = true
     var isReduceTransparency: Boolean = false
     var blurRadius: Float = 2.5f
 

@@ -181,21 +181,17 @@ class TrackingManager(
             }
             lastSensorTimestampNs = nowNs
 
-            // 1. Low-pass filter (SLERP) to reduce high frequency jitter
+            // 1. High-responsiveness Low-pass filter (SLERP) providing jitter-free 3DoF tracking
             if (rawQuaternion.length() < 0.1f) {
                 rawQuaternion.set(currentQ)
                 smoothedQuaternion.set(currentQ)
+                predictedQuaternion.set(currentQ)
             } else {
                 rawQuaternion.set(currentQ)
-                val smoothed = Quaternion.slerp(smoothedQuaternion, rawQuaternion, smoothingAlpha)
+                val smoothed = Quaternion.slerp(smoothedQuaternion, rawQuaternion, 0.82f)
                 smoothedQuaternion.set(smoothed)
+                predictedQuaternion.set(smoothed)
             }
-
-            // 2. Predictive tracking: calculate angular delta and extrapolate forward
-            val deltaQ = smoothedQuaternion * predictedQuaternion.inverse()
-            val lookaheadRatio = (predictionLookaheadSec / dtSec).coerceIn(0f, 2.0f)
-            val predicted = Quaternion.slerp(Quaternion.identity(), deltaQ, lookaheadRatio) * smoothedQuaternion
-            predictedQuaternion.set(predicted)
         }
     }
 
