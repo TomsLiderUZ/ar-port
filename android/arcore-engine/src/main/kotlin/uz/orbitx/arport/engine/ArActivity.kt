@@ -74,6 +74,8 @@ class ArActivity : AppCompatActivity() {
     private var targetFps: Int = 60
     private var ipdMm: Double = 63.0
     private var lensProfile: String = "cardboard_v2"
+    private var isReduceTransparency: Boolean = false
+    private var isLowSpecMode: Boolean = false
 
     private lateinit var rootLayout: FrameLayout
     private lateinit var glSurfaceView: GLSurfaceView
@@ -403,6 +405,66 @@ class ArActivity : AppCompatActivity() {
             })
         }
         dialogLayout.addView(lensRow)
+
+        // Glass Rendering Controls (TZ 8.2)
+        val glassLabel = TextView(this).apply {
+            text = "Liquid Glass sozlamalari:"
+            textSize = 13f
+            setTextColor(Color.parseColor("#DDFFFFFF"))
+            setPadding(0, 20, 0, 10)
+        }
+        dialogLayout.addView(glassLabel)
+
+        val glassRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
+        }
+
+        // Reduce Transparency Toggle Button
+        val reduceTransBtn = TextView(this).apply {
+            text = if (isReduceTransparency) "✓ Qattiq Fon (Tejamkor)" else "○ Shaffoflikni kamaytirish"
+            textSize = 11f
+            setPadding(16, 12, 16, 12)
+            setTextColor(if (isReduceTransparency) Color.parseColor("#30D158") else Color.WHITE)
+            background = GradientDrawable().apply {
+                setColor(if (isReduceTransparency) Color.parseColor("#3330D158") else Color.parseColor("#44333333"))
+                cornerRadius = 18f
+                setStroke(1, if (isReduceTransparency) Color.parseColor("#30D158") else Color.parseColor("#33FFFFFF"))
+            }
+            setOnClickListener {
+                isReduceTransparency = !isReduceTransparency
+                arRenderer?.setGlassParameters(true, isReduceTransparency, isLowSpecMode)
+                dialog.dismiss()
+                showCalibrationDialog()
+            }
+        }
+        glassRow.addView(reduceTransBtn, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
+            setMargins(4, 0, 4, 0)
+        })
+
+        // Low Spec Mode (1/4 texture Kawase pass)
+        val lowSpecBtn = TextView(this).apply {
+            text = if (isLowSpecMode) "✓ Yengil Rejim (1/4)" else "○ Yuqori Blur (1/2)"
+            textSize = 11f
+            setPadding(16, 12, 16, 12)
+            setTextColor(if (isLowSpecMode) Color.parseColor("#FF9F0A") else Color.WHITE)
+            background = GradientDrawable().apply {
+                setColor(if (isLowSpecMode) Color.parseColor("#33FF9F0A") else Color.parseColor("#44333333"))
+                cornerRadius = 18f
+                setStroke(1, if (isLowSpecMode) Color.parseColor("#FF9F0A") else Color.parseColor("#33FFFFFF"))
+            }
+            setOnClickListener {
+                isLowSpecMode = !isLowSpecMode
+                arRenderer?.setGlassParameters(true, isReduceTransparency, isLowSpecMode)
+                dialog.dismiss()
+                showCalibrationDialog()
+            }
+        }
+        glassRow.addView(lowSpecBtn, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
+            setMargins(4, 0, 4, 0)
+        })
+
+        dialogLayout.addView(glassRow)
 
         // Done Button
         val doneBtn = TextView(this).apply {

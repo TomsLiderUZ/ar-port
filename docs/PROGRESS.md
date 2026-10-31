@@ -16,7 +16,7 @@ Ushbu hujjat har bir bosqich natijasini, qilingan ishlarni va ma'lum muammolarni
 | **6** | Harakat kuzatuvi va fazoda qotirish (world-lock) | ✅ Bajarildi | TrackingManager (3DoF/6DoF), kvaternion silliqlash va 16ms bashorat, View/Projection matritsalar, WorldObjectRenderer (fazoda qotuvchi 3D test oynasi), Markazlashtirish (recenter) |
 | **7** | Stereo rejim | ✅ Bajarildi | StereoRenderer (dual FBO, Cardboard v2 barrel distortion, k1/k2, IPD siljishi, markaziy ajratuvchi chiziq, jonli kalibratsiya dialogi, real vaqtda Stereo ↔ Oddiy almashinuvi, dual stereoscopic HUD) |
 | **8** | Fazoviy oyna menejeri va yuza (surface) tizimi | ✅ Bajarildi | SpatialWindow modeli, WindowManager3D, ContentSurface (offscreen canvas/texture), anti-overlap joylash, z-order, fokus, sleep siyosati, frustum culling, 3 ta sinov oynasi |
-| **9** | Liquid Glass renderer | ⏳ Kutilmoqda | - |
+| **9** | Liquid Glass renderer | ✅ Bajarildi | GlassRenderer (Kawase/dual-filter blur, 1/2 va 1/4 FBO ping-pong), squircle superellipse burchaklar, chekka nuri, specular yaltirash, SpringAnimation (Apple fizika burchagi va taktil tebranish), kamaytirilgan shaffoflik rejimi |
 | **10** | Qo'l kuzatuvi (MediaPipe) va qo'l yoritilishi | ⏳ Kutilmoqda | - |
 | **11** | Gest dvigateli va kiritishni oynaga uzatish | ⏳ Kutilmoqda | - |
 | **12** | Home panel, dock, ilova reyestri va plagin tizimi | ⏳ Kutilmoqda | - |
@@ -174,5 +174,31 @@ Ushbu hujjat har bir bosqich natijasini, qilingan ishlarni va ma'lum muammolarni
      - Oddiy rejimda ekranni bosish orqali 3D fazodagi oynalarni fokuslash, yopish va o'lchamini almashtirish (touch raycasting).
   6. Tekshiruv va sinovlar:
      - JVM unit testlari (`WindowTest.kt`, `StereoTest.kt`, `QuaternionTest.kt` bo'yicha jami 18 ta test) to'liq muvaffaqiyatli o'tdi (`BUILD SUCCESSFUL in 27s`).
+     - Flutter testlari (12 ta test) va Flutter tahlili (`flutter analyze` — 0 ogohlantirish) to'liq o'tdi.
+     - Debug APK (`flutter build apk --debug`) muvaffaqiyatli yig'ildi (`build\app\outputs\flutter-apk\app-debug.apk`, 215.8 MB).
+
+---
+
+## QADAM 9 Batafsil Hisoboti
+- **Sana:** 2026-10-31
+- **Bajarildi:**
+  1. Kawase / Dual-filtering blur tizimi (`GlassRenderer.kt`):
+     - Kamera passthrough sahnasini 1/2 yoki 1/4 (yengil rejim) ruxsatga tushirish (downsampling).
+     - Ping-pong FBO quvuri orqali diagonal 4-tap Kawase filtri (Gaussian blurdan 3 barobar tezroq, minimal kechikish).
+  2. Liquid Glass shader va vizual qatlamlar (`WindowRenderer3D.kt`):
+     - Ekran koordinatasi bo'yicha orqa fonni nozik optik sindirish (refraction) bilan xiralashtirib ko'rsatish (`uBlurredBackground`).
+     - Squircle superellipse burchak formulasi ($x^4 + y^4 \le 1.0$) bo'yicha haqiqiy iOS shaklida qirqish (`discard`).
+     - iOS qorong'i glass tinti (`#1C1C1E`, alpha = 0.65) va och rejim tinti (`#F2F2F7`).
+     - Chekka nuri (Edge highlight) — oynaning burchaklarida nozik yorug'lik hoshiyasi (fokusda `#0A84FF`, boshqalarida yarim shaffof oq-kulrang).
+     - Specular yaltirash (yuqori chekkadagi yorug'lik nuri).
+  3. Apple uslubidagi jismoniy prujina animatsiyalari (`SpringAnimation.kt`):
+     - Damping ratio $\zeta = 0.82$, burchak chastotasi $\omega = 24.0$ rad/s.
+     - Oyna ochilishida organik sakrash ($0.0 \to 1.0$), bosilganda taktil tebranish ($0.96 \to 1.0$), yopilish/yig'ilishda silliq kichrayish.
+  4. Optimallashtirish va moslashuvchan boshqaruv (`ArActivity.kt`):
+     - "Kamaytirilgan shaffoflik" (Reduce Transparency) rejimi: blur o'chirilib, qattiqroq rangli fon qo'yiladi (GPU energiyasini tejash).
+     - "Yengil rejim" (Low Spec 1/4 blur): o'rta va past toifali qurilmalarda FPS $\ge 45$ barqarorligini ta'minlash.
+     - Kalibratsiya dialogida Liquid Glass parametrlarini jonli almashtirish.
+  5. Tekshiruv va sinovlar:
+     - JVM unit testlari (`SpringTest.kt`, `WindowTest.kt`, `StereoTest.kt`, `QuaternionTest.kt` bo'yicha jami 22 ta test) to'liq muvaffaqiyatli o'tdi (`BUILD SUCCESSFUL in 59s`).
      - Flutter testlari (12 ta test) va Flutter tahlili (`flutter analyze` — 0 ogohlantirish) to'liq o'tdi.
      - Debug APK (`flutter build apk --debug`) muvaffaqiyatli yig'ildi (`build\app\outputs\flutter-apk\app-debug.apk`, 215.8 MB).

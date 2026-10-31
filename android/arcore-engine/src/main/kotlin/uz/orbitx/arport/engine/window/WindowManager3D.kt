@@ -89,6 +89,8 @@ class WindowManager3D(
                 if (shouldFocus) {
                     w.zOrder = nextZOrder++
                     w.isSleeping = false
+                    // Tactile Apple-style spring bounce on focus
+                    w.scaleSpring.snapTo(0.96f)
                 }
             }
         }
@@ -112,6 +114,7 @@ class WindowManager3D(
             val win = windows.find { it.id == windowId }
             win?.state = WindowState.MINIMIZED
             win?.isFocused = false
+            win?.scaleSpring?.targetValue = 0.0f
         }
     }
 
@@ -120,6 +123,7 @@ class WindowManager3D(
             val win = windows.find { it.id == windowId }
             win?.let {
                 it.state = WindowState.NORMAL
+                it.scaleSpring.targetValue = 1.0f
                 setFocus(it.id)
             }
         }

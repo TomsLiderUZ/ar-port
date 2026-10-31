@@ -2,6 +2,7 @@ package uz.orbitx.arport.engine.window
 
 import uz.orbitx.arport.engine.math.Matrix4x4
 import uz.orbitx.arport.engine.math.Quaternion
+import uz.orbitx.arport.engine.render.SpringAnimation
 import java.util.UUID
 import kotlin.math.abs
 
@@ -38,6 +39,7 @@ class SpatialWindow(
     var zOrder: Int = 0
     var opacity: Float = 1.0f
     var isSleeping: Boolean = false
+    val scaleSpring = SpringAnimation(currentValue = 0.0f, targetValue = 1.0f)
 
     // Offscreen content surface provider
     var contentSurface: ContentSurface? = null

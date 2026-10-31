@@ -277,6 +277,9 @@ void main() {
         return (ipdMm.toFloat() / 1000.0f) * 0.5f
     }
 
+    fun getLeftColorTexId(): Int = colorTexIds[0]
+    fun getRightColorTexId(): Int = colorTexIds[1]
+
     private fun releaseFramebuffers() {
         if (fboIds[0] != 0) {
             GLES30.glDeleteFramebuffers(2, fboIds, 0)
