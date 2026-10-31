@@ -53,6 +53,8 @@ interface GestureListener {
 class GestureEngine(
     private var listener: GestureListener? = null
 ) {
+    var pinchEnterThreshold: Float = PINCH_ENTER_THRESHOLD
+    var pinchExitThreshold: Float = PINCH_EXIT_THRESHOLD
     companion object {
         const val PINCH_ENTER_THRESHOLD = 0.052f  // ~2.5cm equivalent
         const val PINCH_EXIT_THRESHOLD = 0.078f   // Hysteresis boundary
@@ -208,8 +210,8 @@ class GestureEngine(
             val d0 = calculatePinchDistance(h0)
             val d1 = calculatePinchDistance(h1)
 
-            val p0 = if (s0.isPinching) d0 < PINCH_EXIT_THRESHOLD else d0 < PINCH_ENTER_THRESHOLD
-            val p1 = if (s1.isPinching) d1 < PINCH_EXIT_THRESHOLD else d1 < PINCH_ENTER_THRESHOLD
+            val p0 = if (s0.isPinching) d0 < pinchExitThreshold else d0 < pinchEnterThreshold
+            val p1 = if (s1.isPinching) d1 < pinchExitThreshold else d1 < pinchEnterThreshold
 
             if (p0 && p1) {
                 val currentTwoHandDist = calculateTwoHandDistance(h0, h1)
@@ -326,9 +328,9 @@ class GestureEngine(
             // D. Pinch, Tap, Hold, Drag, Scroll Detection
             val pinchDist = calculatePinchDistance(hand)
             val isPinchingNow = if (state.isPinching) {
-                pinchDist < PINCH_EXIT_THRESHOLD
+                pinchDist < pinchExitThreshold
             } else {
-                pinchDist < PINCH_ENTER_THRESHOLD
+                pinchDist < pinchEnterThreshold
             }
 
             // Hit test with current hand ray

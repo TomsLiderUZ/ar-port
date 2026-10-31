@@ -354,3 +354,30 @@ Ushbu hujjat har bir bosqich natijasini, qilingan ishlarni va ma'lum muammolarni
      - JVM unit testlari (`NativeAppsTest.kt` va avvalgi barcha testlar bo'yicha jami **59 ta test**) to'liq muvaffaqiyatli o'tdi (`BUILD SUCCESSFUL in 46s`).
      - Flutter testlari (12 ta test) va Flutter tahlili (`flutter analyze` — 0 ogohlantirish) to'liq o'tdi.
      - Debug APK (`flutter build apk --debug`) muvaffaqiyatli yig'ildi (`build\app\outputs\flutter-apk\app-debug.apk`, 215.89 MB).
+
+---
+
+## QADAM 15 Batafsil Hisoboti
+- **Sana:** 2026-10-31
+- **Bajarildi:**
+  1. Tizim Sozlamalari Modeli va Xotira Ombori (`SettingsStore.kt`, `ArSettings`):
+     - Ko'rinish (Displey), Imo-ishoralar (Gestures), Oynalar (Windows), Ishlash unumdorligi (Performance), Ovoz, Kamera, Sandbox va Tizim haqida bo'limlarini o'z ichiga olgan to'liq versiyalangan sozlamalar modeli.
+     - JVM unit testlari va haqiqiy qurilmalarda 100% deterministik ishlaydigan pure-Kotlin JSON seriyalashtiruvchi (`toJsonString()`) va xavfsiz tahlilchi (`fromJsonString()`).
+     - Android `SharedPreferences` orqali saqlash, dinamik tinglovchilar (`SettingsChangeListener`), sozlamalarni standart holatga qaytarish (`resetToDefaults()`), hamda sandbox fayllar tizimiga eksport/import (`ar_port_settings_backup.json`).
+  2. Native Fazoviy Sozlamalar Ilovasi (`SettingsApp.kt`):
+     - iPad / VisionOS uslubidagi ikki panelli (chapda toifalar yon paneli, o'ngda batafsil boshqaruv elementlari) fazoviy oyna interfeysi.
+     - **Displey:** Fon rejimi (Passthrough, Virtual Studio, Qorong'i xona), Oyna shaffofligi (0.1 - 0.95), Shaffoflikni kamaytirish (Reduce transparency toggle), Xiralashtirish radiusi (Kawase blur: 4 - 32 px), Yorqinlik slayderi (10% - 100%).
+     - **Imo-ishoralar:** Qo'l skeleti nuri (Hand glow on/off), Chimchilash sezuvchanligi (Pinch sensitivity), Imo-ishoralar xaritasi (Pinch Tap -> Select, Index Ray -> Point, Pinch Drag -> Move, Two-hand Pinch -> Resize, Fist -> Minimize, Open Palm -> Home, Peace V -> Recenter, Thumbs Up -> App Switcher), "Gest o'rgatish" interaktiv modal oynasi.
+     - **Oynalar:** Maksimal ochiq oynalar cheklovi (1 - 8 oyna), Oynalarni avtomatik joylashtirish radiusi va masofasi, Oynalar uyqu siyosati (Sleep policy toggle).
+     - **Unumdorlik:** Maqsadli kadrlar tezligi (30 FPS, 60 FPS, 90 FPS), Ruxsat etilgan kadr tushishi (Adaptive quality), Dinamik DPI masshtabi.
+     - **Maxfiylik va Sandbox:** Barcha web sessiyalari va keshlarini bir zumda tozalash (`SessionStore.getInstance().clearAll()`), sozlamalarni eksport qilish va import qilish.
+  3. Jonli Render va Boshqaruv Integratsiyasi:
+     - `ArEngineRenderer.kt` da sozlamalar o'zgarishi darhol amalga oshiriladi: `glassRenderer.isReduceTransparency`, `glassRenderer.blurRadius`, `gestureEngine.pinchEnterThreshold`, `handRenderer.isGlowEnabled`.
+     - Dinamik imo-ishoralar xaritasi (`currentSettings.gestureShortcuts`): foydalanuvchi imo-ishoraga biriktirilgan amalni o'zgartirganda ("HOME", "CLOSE_WINDOW", "CYCLE_WINDOWS_NEXT", "RECENTER", "CAMERA", "SETTINGS") real vaqtda yangi amal bajariladi.
+     - `GestureEngine.kt` da chimchilash kirish va chiqish chegaralari (`pinchEnterThreshold`, `pinchExitThreshold`) sozlamalarga mos dinamiklashtirildi.
+     - `AppRegistry.kt` da manifest bo'yicha `"settings"` ilovasi `SettingsApp` ga ulandi.
+  4. Tekshiruv va sinovlar:
+     - JVM unit testlari (`SettingsTest.kt` va barcha dvigatel testlari: jami **64 ta test**) to'liq muvaffaqiyatli o'tdi (`BUILD SUCCESSFUL in 23s`).
+     - Flutter testlari (12 ta test) va Flutter tahlili (`flutter analyze` — 0 ogohlantirish) to'liq o'tdi.
+     - Debug APK (`flutter build apk --debug`) muvaffaqiyatli yig'ildi (`build\app\outputs\flutter-apk\app-debug.apk`, 215.89 MB).
+

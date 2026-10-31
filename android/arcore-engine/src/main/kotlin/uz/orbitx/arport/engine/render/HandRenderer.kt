@@ -88,6 +88,7 @@ void main() {
     private val pointsBuffer: FloatBuffer
     private val linesBuffer: FloatBuffer
     private val mvpMatrix = FloatArray(16)
+    var isGlowEnabled: Boolean = true
 
     init {
         // Up to 42 points (2 hands * 21 points), 4 floats per point (x, y, z, size)
@@ -120,7 +121,7 @@ void main() {
         viewMatrix: FloatArray,
         projectionMatrix: FloatArray
     ) {
-        if (hands.isEmpty() || pointProgram == 0 || lineProgram == 0) return
+        if (!isGlowEnabled || hands.isEmpty() || pointProgram == 0 || lineProgram == 0) return
 
         // Compute Camera VP Matrix
         Matrix.multiplyMM(mvpMatrix, 0, projectionMatrix, 0, viewMatrix, 0)

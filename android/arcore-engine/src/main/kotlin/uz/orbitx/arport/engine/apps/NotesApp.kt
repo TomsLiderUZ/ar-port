@@ -547,3 +547,4 @@ class NotesApp(
         canvas.drawText(msg, toastRect.left + (toastRect.width() - textW) / 2f, 1230f, paint)
     }
 }
+

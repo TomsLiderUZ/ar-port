@@ -62,9 +62,15 @@ class ArEngineRenderer(
     var onBrightnessToggleRequested: (() -> Unit)? = null
     var onExitRequested: (() -> Unit)? = null
 
+    var currentSettings = uz.orbitx.arport.engine.settings.ArSettings()
+
     init {
         context?.let {
             uz.orbitx.arport.engine.session.SessionStore.getInstance().init(it)
+        }
+        val settingsStore = uz.orbitx.arport.engine.settings.SettingsStore.getInstance(context)
+        settingsStore.addListener { updated ->
+            applySettings(updated)
         }
         gestureEngine.setListener(object : GestureListener {
             override fun onGestureEvent(event: GestureEvent) {
@@ -385,23 +391,53 @@ class ArEngineRenderer(
         val handled = inputInjector.handleWindowGesture(event, windowManager)
         if (handled) return
 
-        // 6. System-level Gestures
+        // 6. System-level Gestures with dynamic shortcuts
         when (event.type) {
             GestureType.PALM_UP -> {
-                toggleHomePanel()
-                onHomeDockRequested?.invoke()
-            }
-            GestureType.SWIPE_LEFT -> {
-                cycleWindowFocus(forward = true)
-            }
-            GestureType.SWIPE_RIGHT -> {
-                cycleWindowFocus(forward = false)
+                val action = currentSettings.gestureShortcuts["PALM_UP"] ?: "HOME"
+                executeShortcutAction(action, event)
             }
             GestureType.FIST -> {
-                event.window?.let { windowManager.closeWindow(it.id) }
+                val action = currentSettings.gestureShortcuts["FIST"] ?: "CLOSE_WINDOW"
+                executeShortcutAction(action, event)
+            }
+            GestureType.SWIPE_LEFT -> {
+                val action = currentSettings.gestureShortcuts["SWIPE_LEFT"] ?: "CYCLE_WINDOWS_NEXT"
+                executeShortcutAction(action, event)
+            }
+            GestureType.SWIPE_RIGHT -> {
+                val action = currentSettings.gestureShortcuts["SWIPE_RIGHT"] ?: "CYCLE_WINDOWS_PREV"
+                executeShortcutAction(action, event)
             }
             else -> {}
         }
+    }
+
+    private fun executeShortcutAction(action: String, event: GestureEvent) {
+        when (action) {
+            "HOME" -> {
+                toggleHomePanel()
+                onHomeDockRequested?.invoke()
+            }
+            "CLOSE_WINDOW" -> {
+                event.window?.let { windowManager.closeWindow(it.id) }
+            }
+            "CYCLE_WINDOWS_NEXT" -> cycleWindowFocus(forward = true)
+            "CYCLE_WINDOWS_PREV" -> cycleWindowFocus(forward = false)
+            "RECENTER" -> recenter()
+            "CAMERA" -> appRegistry.launchApp("camera", windowManager)
+            "SETTINGS" -> appRegistry.launchApp("settings", windowManager)
+            else -> {}
+        }
+    }
+
+    fun applySettings(settings: uz.orbitx.arport.engine.settings.ArSettings) {
+        currentSettings = settings
+        glassRenderer.isReduceTransparency = settings.reduceTransparency
+        glassRenderer.blurRadius = if (settings.glassBlurRadius <= 0f) 0.1f else (settings.glassBlurRadius / 6.0f)
+        gestureEngine.pinchEnterThreshold = settings.pinchThresholdEnter
+        gestureEngine.pinchExitThreshold = settings.pinchThresholdEnter * 1.5f
+        handRenderer.isGlowEnabled = settings.handGlowEnabled
     }
 
     fun toggleHomePanel() {

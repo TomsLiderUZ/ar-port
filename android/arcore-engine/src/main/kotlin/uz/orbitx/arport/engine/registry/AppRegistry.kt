@@ -164,6 +164,7 @@ class AppRegistry(private val context: Context? = null) {
                     "notes" -> uz.orbitx.arport.engine.apps.NotesApp(manifest)
                     "clock" -> uz.orbitx.arport.engine.apps.ClockApp(manifest)
                     "calendar" -> uz.orbitx.arport.engine.apps.CalendarApp(manifest)
+                    "settings" -> uz.orbitx.arport.engine.apps.SettingsApp(manifest)
                     else -> null
                 }
                 if (nativeApp != null) {
