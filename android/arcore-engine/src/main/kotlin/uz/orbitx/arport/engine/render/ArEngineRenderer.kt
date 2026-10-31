@@ -148,39 +148,47 @@ class ArEngineRenderer(
     private var lastFrameTimeNs: Long = 0
 
     override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
-        GLES30.glClearColor(0.0f, 0.0f, 0.0f, 1.0f)
-        GLES30.glClearDepthf(1.0f)
+        try {
+            GLES30.glClearColor(0.0f, 0.0f, 0.0f, 1.0f)
+            GLES30.glClearDepthf(1.0f)
 
-        passthroughRenderer.onSurfaceCreated()
-        stereoRenderer.onSurfaceCreated()
-        glassRenderer.onSurfaceCreated()
-        windowRenderer.onSurfaceCreated()
-        handRenderer.onSurfaceCreated()
+            passthroughRenderer.onSurfaceCreated()
+            stereoRenderer.onSurfaceCreated()
+            glassRenderer.onSurfaceCreated()
+            windowRenderer.onSurfaceCreated()
+            handRenderer.onSurfaceCreated()
 
-        // Initialize Spatial Dock and Home Panel
-        if (spatialDock.dockWindow == null) {
-            val dockWin = spatialDock.createDockWindow()
-            windowManager.addWindow(dockWin)
-        }
-        if (spatialHomePanel.homeWindow == null) {
-            val homeWin = spatialHomePanel.createHomeWindow()
-            windowManager.addWindow(homeWin)
-        }
+            // Initialize Spatial Dock and Home Panel
+            if (spatialDock.dockWindow == null) {
+                val dockWin = spatialDock.createDockWindow()
+                windowManager.addWindow(dockWin)
+            }
+            if (spatialHomePanel.homeWindow == null) {
+                val homeWin = spatialHomePanel.createHomeWindow()
+                windowManager.addWindow(homeWin)
+            }
 
-        passthroughRenderer.surfaceTexture?.let { st ->
-            onSurfaceTextureReady(st)
+            passthroughRenderer.surfaceTexture?.let { st ->
+                onSurfaceTextureReady(st)
+            }
+        } catch (e: Throwable) {
+            android.util.Log.e("ArEngineRenderer", "onSurfaceCreated GL xatoligi: ${e.message}", e)
         }
     }
 
     override fun onSurfaceChanged(gl: GL10?, width: Int, height: Int) {
-        screenWidth = width
-        screenHeight = height
+        try {
+            screenWidth = width
+            screenHeight = height
 
-        passthroughRenderer.onSurfaceChanged(width, height)
-        stereoRenderer.onSurfaceChanged(width, height)
-        glassRenderer.onSurfaceChanged(width, height)
+            passthroughRenderer.onSurfaceChanged(width, height)
+            stereoRenderer.onSurfaceChanged(width, height)
+            glassRenderer.onSurfaceChanged(width, height)
 
-        setupNormalFramebuffers()
+            setupNormalFramebuffers()
+        } catch (e: Throwable) {
+            android.util.Log.e("ArEngineRenderer", "onSurfaceChanged GL xatoligi: ${e.message}", e)
+        }
     }
 
     private fun setupNormalFramebuffers() {
@@ -227,109 +235,113 @@ class ArEngineRenderer(
     }
 
     override fun onDrawFrame(gl: GL10?) {
-        val nowNs = System.nanoTime()
-        val dtSec = if (lastFrameTimeNs > 0) {
-            ((nowNs - lastFrameTimeNs) / 1_000_000_000.0f).coerceIn(0.001f, 0.05f)
-        } else {
-            0.016f
-        }
-        lastFrameTimeNs = nowNs
-
-        frameCounter++
-        // Live Adaptive Quality Optimization Loop
-        adaptiveQualityController.onFrame(getFps())
-
-        if (frameCounter % 30 == 0) {
-            // Periodically refresh system monitor window with live metrics
-            windowManager.allWindows.find { it.appId == "system_monitor" }?.let { win ->
-                windowManager.renderSystemMonitorContent(win, getFps(), getLatencyMs())
+        try {
+            val nowNs = System.nanoTime()
+            val dtSec = if (lastFrameTimeNs > 0) {
+                ((nowNs - lastFrameTimeNs) / 1_000_000_000.0f).coerceIn(0.001f, 0.05f)
+            } else {
+                0.016f
             }
-        }
-        if (frameCounter % 6 == 0) {
-            for ((_, app) in appRegistry.activeNativeApps) {
-                if (app is uz.orbitx.arport.engine.apps.ClockApp) {
-                    app.tick()
+            lastFrameTimeNs = nowNs
+
+            frameCounter++
+            // Live Adaptive Quality Optimization Loop
+            adaptiveQualityController.onFrame(getFps())
+
+            if (frameCounter % 30 == 0) {
+                // Periodically refresh system monitor window with live metrics
+                windowManager.allWindows.find { it.appId == "system_monitor" }?.let { win ->
+                    windowManager.renderSystemMonitorContent(win, getFps(), getLatencyMs())
                 }
             }
-        }
-        for ((_, app) in appRegistry.activeNativeApps) {
-            app.onUpdate(dtSec)
-        }
+            if (frameCounter % 6 == 0) {
+                for ((_, app) in appRegistry.activeNativeApps) {
+                    if (app is uz.orbitx.arport.engine.apps.ClockApp) {
+                        app.tick()
+                    }
+                }
+            }
+            for ((_, app) in appRegistry.activeNativeApps) {
+                app.onUpdate(dtSec)
+            }
 
-        val visibleHands = handTracker?.getVisibleHands() ?: emptyList()
-        gestureEngine.processHands(visibleHands, windowManager)
+            val visibleHands = handTracker?.getVisibleHands() ?: emptyList()
+            gestureEngine.processHands(visibleHands, windowManager)
 
-        if (viewMode == "stereo") {
-            val eyeW = stereoRenderer.eyeWidth
-            val eyeH = stereoRenderer.eyeHeight
-            val eyeOffsetM = stereoRenderer.getEyeOffsetMeters()
+            if (viewMode == "stereo") {
+                val eyeW = stereoRenderer.eyeWidth
+                val eyeH = stereoRenderer.eyeHeight
+                val eyeOffsetM = stereoRenderer.getEyeOffsetMeters()
 
-            trackingManager.getProjectionMatrix(projectionMatrix, eyeW, eyeH, fovYDeg = 65f)
+                trackingManager.getProjectionMatrix(projectionMatrix, eyeW, eyeH, fovYDeg = 65f)
 
-            // 1. Left Eye Pass
-            stereoRenderer.beginLeftEye()
-            GLES30.glDisable(GLES30.GL_DEPTH_TEST)
-            GLES30.glDepthMask(false)
-            passthroughRenderer.draw(0, 0, eyeW, eyeH)
+                // 1. Left Eye Pass
+                stereoRenderer.beginLeftEye()
+                GLES30.glDisable(GLES30.GL_DEPTH_TEST)
+                GLES30.glDepthMask(false)
+                passthroughRenderer.draw(0, 0, eyeW, eyeH)
 
-            // Kawase blur pass on background for Left Eye
-            val blurredLeftTex = glassRenderer.performBlur(stereoRenderer.getLeftColorTexId())
+                // Kawase blur pass on background for Left Eye
+                val blurredLeftTex = glassRenderer.performBlur(stereoRenderer.getLeftColorTexId())
 
-            stereoRenderer.beginLeftEye()
-            GLES30.glEnable(GLES30.GL_DEPTH_TEST)
-            GLES30.glDepthMask(true)
-            trackingManager.getViewMatrix(viewMatrix, -eyeOffsetM)
-            Matrix.multiplyMM(vpMatrix, 0, projectionMatrix, 0, viewMatrix, 0)
-            windowRenderer.drawWindows(windowManager, viewMatrix, projectionMatrix, vpMatrix, blurredLeftTex, eyeW, eyeH, dtSec)
-            handRenderer.drawHands(visibleHands, windowManager, viewMatrix, projectionMatrix)
+                stereoRenderer.beginLeftEye()
+                GLES30.glEnable(GLES30.GL_DEPTH_TEST)
+                GLES30.glDepthMask(true)
+                trackingManager.getViewMatrix(viewMatrix, -eyeOffsetM)
+                Matrix.multiplyMM(vpMatrix, 0, projectionMatrix, 0, viewMatrix, 0)
+                windowRenderer.drawWindows(windowManager, viewMatrix, projectionMatrix, vpMatrix, blurredLeftTex, eyeW, eyeH, dtSec)
+                handRenderer.drawHands(visibleHands, windowManager, viewMatrix, projectionMatrix)
 
-            // 2. Right Eye Pass
-            stereoRenderer.beginRightEye()
-            GLES30.glDisable(GLES30.GL_DEPTH_TEST)
-            GLES30.glDepthMask(false)
-            passthroughRenderer.draw(0, 0, eyeW, eyeH)
+                // 2. Right Eye Pass
+                stereoRenderer.beginRightEye()
+                GLES30.glDisable(GLES30.GL_DEPTH_TEST)
+                GLES30.glDepthMask(false)
+                passthroughRenderer.draw(0, 0, eyeW, eyeH)
 
-            // Kawase blur pass on background for Right Eye
-            val blurredRightTex = glassRenderer.performBlur(stereoRenderer.getRightColorTexId())
+                // Kawase blur pass on background for Right Eye
+                val blurredRightTex = glassRenderer.performBlur(stereoRenderer.getRightColorTexId())
 
-            stereoRenderer.beginRightEye()
-            GLES30.glEnable(GLES30.GL_DEPTH_TEST)
-            GLES30.glDepthMask(true)
-            trackingManager.getViewMatrix(viewMatrix, eyeOffsetM)
-            Matrix.multiplyMM(vpMatrix, 0, projectionMatrix, 0, viewMatrix, 0)
-            windowRenderer.drawWindows(windowManager, viewMatrix, projectionMatrix, vpMatrix, blurredRightTex, eyeW, eyeH, dtSec)
-            handRenderer.drawHands(visibleHands, windowManager, viewMatrix, projectionMatrix)
+                stereoRenderer.beginRightEye()
+                GLES30.glEnable(GLES30.GL_DEPTH_TEST)
+                GLES30.glDepthMask(true)
+                trackingManager.getViewMatrix(viewMatrix, eyeOffsetM)
+                Matrix.multiplyMM(vpMatrix, 0, projectionMatrix, 0, viewMatrix, 0)
+                windowRenderer.drawWindows(windowManager, viewMatrix, projectionMatrix, vpMatrix, blurredRightTex, eyeW, eyeH, dtSec)
+                handRenderer.drawHands(visibleHands, windowManager, viewMatrix, projectionMatrix)
 
-            // 3. Post-processing Barrel Distortion Pass
-            stereoRenderer.finishAndDistort()
+                // 3. Post-processing Barrel Distortion Pass
+                stereoRenderer.finishAndDistort()
 
-        } else {
-            // Normal (Fullscreen) Mode
-            // Render background to normal FBO
-            GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, normalFboIds[0])
-            GLES30.glViewport(0, 0, screenWidth, screenHeight)
-            GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT or GLES30.GL_DEPTH_BUFFER_BIT)
-            GLES30.glDisable(GLES30.GL_DEPTH_TEST)
-            GLES30.glDepthMask(false)
-            passthroughRenderer.draw(0, 0, screenWidth, screenHeight)
+            } else {
+                // Normal (Fullscreen) Mode
+                // Render background to normal FBO
+                GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, normalFboIds[0])
+                GLES30.glViewport(0, 0, screenWidth, screenHeight)
+                GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT or GLES30.GL_DEPTH_BUFFER_BIT)
+                GLES30.glDisable(GLES30.GL_DEPTH_TEST)
+                GLES30.glDepthMask(false)
+                passthroughRenderer.draw(0, 0, screenWidth, screenHeight)
 
-            // Kawase blur pass on background
-            val blurredTex = glassRenderer.performBlur(normalColorTexIds[0])
+                // Kawase blur pass on background
+                val blurredTex = glassRenderer.performBlur(normalColorTexIds[0])
 
-            // Render to Main Screen
-            GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, 0)
-            GLES30.glViewport(0, 0, screenWidth, screenHeight)
-            GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT or GLES30.GL_DEPTH_BUFFER_BIT)
-            passthroughRenderer.draw(0, 0, screenWidth, screenHeight)
+                // Render to Main Screen
+                GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, 0)
+                GLES30.glViewport(0, 0, screenWidth, screenHeight)
+                GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT or GLES30.GL_DEPTH_BUFFER_BIT)
+                passthroughRenderer.draw(0, 0, screenWidth, screenHeight)
 
-            // 3D Liquid Glass Windows
-            GLES30.glEnable(GLES30.GL_DEPTH_TEST)
-            GLES30.glDepthMask(true)
-            trackingManager.getProjectionMatrix(projectionMatrix, screenWidth, screenHeight, fovYDeg = 65f)
-            trackingManager.getViewMatrix(viewMatrix, 0f)
-            Matrix.multiplyMM(vpMatrix, 0, projectionMatrix, 0, viewMatrix, 0)
-            windowRenderer.drawWindows(windowManager, viewMatrix, projectionMatrix, vpMatrix, blurredTex, screenWidth, screenHeight, dtSec)
-            handRenderer.drawHands(visibleHands, windowManager, viewMatrix, projectionMatrix)
+                // 3D Liquid Glass Windows
+                GLES30.glEnable(GLES30.GL_DEPTH_TEST)
+                GLES30.glDepthMask(true)
+                trackingManager.getProjectionMatrix(projectionMatrix, screenWidth, screenHeight, fovYDeg = 65f)
+                trackingManager.getViewMatrix(viewMatrix, 0f)
+                Matrix.multiplyMM(vpMatrix, 0, projectionMatrix, 0, viewMatrix, 0)
+                windowRenderer.drawWindows(windowManager, viewMatrix, projectionMatrix, vpMatrix, blurredTex, screenWidth, screenHeight, dtSec)
+                handRenderer.drawHands(visibleHands, windowManager, viewMatrix, projectionMatrix)
+            }
+        } catch (e: Throwable) {
+            android.util.Log.e("ArEngineRenderer", "onDrawFrame render xatoligi: ${e.message}", e)
         }
     }
 

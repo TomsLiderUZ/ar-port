@@ -18,6 +18,7 @@ class MainActivity : FlutterActivity() {
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+        uz.orbitx.arport.engine.GlobalCrashHandler.install(applicationContext)
         val messenger = flutterEngine.dartExecutor.binaryMessenger
 
         // Hardware capabilities

@@ -47,6 +47,13 @@
             android:theme="@style/ArTheme"
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|screenLayout|density|uiMode" />
 
+        <!-- Crash Report Activity running in separate process -->
+        <activity
+            android:name="uz.orbitx.arport.engine.CrashReportActivity"
+            android:exported="false"
+            android:process=":crash"
+            android:theme="@android:style/Theme.DeviceDefault.NoActionBar" />
+
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />

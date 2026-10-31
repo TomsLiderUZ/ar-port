@@ -31,7 +31,8 @@ class PassthroughRenderer(
         """
 
         private const val FRAGMENT_SHADER = """#version 300 es
-            #extension GL_OES_EGL_image_external_essl3 : require
+            #extension GL_OES_EGL_image_external_essl3 : enable
+            #extension GL_OES_EGL_image_external : enable
             precision mediump float;
             uniform samplerExternalOES sTexture;
             in vec2 vTexCoord;

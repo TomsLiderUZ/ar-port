@@ -50,56 +50,30 @@ class HandTracker(
     private fun setupHandLandmarker() {
         executor.execute {
             try {
-                // Try GPU delegate first, fallback to CPU if unavailable
-                var baseOptions: BaseOptions
-                try {
-                    baseOptions = BaseOptions.builder()
-                        .setModelAssetPath("models/hand_landmarker.task")
-                        .setDelegate(Delegate.GPU)
-                        .build()
-                    val options = HandLandmarker.HandLandmarkerOptions.builder()
-                        .setBaseOptions(baseOptions)
-                        .setRunningMode(RunningMode.LIVE_STREAM)
-                        .setNumHands(2)
-                        .setMinHandDetectionConfidence(0.5f)
-                        .setMinHandPresenceConfidence(0.5f)
-                        .setMinTrackingConfidence(0.5f)
-                        .setResultListener { result, _ ->
-                            processResult(result)
-                        }
-                        .setErrorListener { error ->
-                            Log.w("HandTracker", "MediaPipe GPU error: ${error.message}")
-                        }
-                        .build()
-                    handLandmarker = HandLandmarker.createFromOptions(context, options)
-                    isInitialized = true
-                    Log.i("HandTracker", "MediaPipe HandLandmarker initialized with GPU delegate.")
-                } catch (e: Exception) {
-                    Log.w("HandTracker", "GPU delegate failed, falling back to CPU: ${e.message}")
-                    baseOptions = BaseOptions.builder()
-                        .setModelAssetPath("models/hand_landmarker.task")
-                        .setDelegate(Delegate.CPU)
-                        .build()
-                    val options = HandLandmarker.HandLandmarkerOptions.builder()
-                        .setBaseOptions(baseOptions)
-                        .setRunningMode(RunningMode.LIVE_STREAM)
-                        .setNumHands(2)
-                        .setMinHandDetectionConfidence(0.5f)
-                        .setMinHandPresenceConfidence(0.5f)
-                        .setMinTrackingConfidence(0.5f)
-                        .setResultListener { result, _ ->
-                            processResult(result)
-                        }
-                        .setErrorListener { error ->
-                            Log.e("HandTracker", "MediaPipe CPU error: ${error.message}")
-                        }
-                        .build()
-                    handLandmarker = HandLandmarker.createFromOptions(context, options)
-                    isInitialized = true
-                    Log.i("HandTracker", "MediaPipe HandLandmarker initialized with CPU delegate.")
-                }
-            } catch (e: Exception) {
-                Log.e("HandTracker", "Failed to initialize MediaPipe HandLandmarker: ${e.message}")
+                // Initialize MediaPipe with robust CPU delegate (XNNPACK) to ensure 100% stability across all chipsets
+                val baseOptions = BaseOptions.builder()
+                    .setModelAssetPath("models/hand_landmarker.task")
+                    .setDelegate(Delegate.CPU)
+                    .build()
+                val options = HandLandmarker.HandLandmarkerOptions.builder()
+                    .setBaseOptions(baseOptions)
+                    .setRunningMode(RunningMode.LIVE_STREAM)
+                    .setNumHands(2)
+                    .setMinHandDetectionConfidence(0.5f)
+                    .setMinHandPresenceConfidence(0.5f)
+                    .setMinTrackingConfidence(0.5f)
+                    .setResultListener { result, _ ->
+                        processResult(result)
+                    }
+                    .setErrorListener { error ->
+                        Log.e("HandTracker", "MediaPipe CPU error: ${error.message}")
+                    }
+                    .build()
+                handLandmarker = HandLandmarker.createFromOptions(context, options)
+                isInitialized = true
+                Log.i("HandTracker", "MediaPipe HandLandmarker initialized successfully with CPU delegate.")
+            } catch (e: Throwable) {
+                Log.e("HandTracker", "Failed to initialize MediaPipe HandLandmarker: ${e.message}", e)
             }
         }
     }

@@ -98,6 +98,7 @@ class ArActivity : FragmentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        GlobalCrashHandler.install(applicationContext)
 
         try {
             // Read launch arguments
@@ -124,6 +125,11 @@ class ArActivity : FragmentActivity() {
             // 2. OpenGL ES 3.0 Surface View
             glSurfaceView = GLSurfaceView(this).apply {
                 setEGLContextClientVersion(3)
+                try {
+                    setEGLConfigChooser(8, 8, 8, 8, 16, 0)
+                } catch (_: Throwable) {
+                    setEGLConfigChooser(true)
+                }
                 preserveEGLContextOnPause = true
                 setOnTouchListener { view, event ->
                     handleScreenTouch(event, view.width, view.height)
