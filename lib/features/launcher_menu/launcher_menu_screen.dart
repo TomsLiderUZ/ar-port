@@ -7,19 +7,34 @@ import '../../widgets/ios_inset_group.dart';
 import '../../widgets/ios_list_tile.dart';
 import '../../widgets/ios_primary_button.dart';
 import '../../widgets/ios_segmented_control.dart';
-import '../../widgets/ios_switch.dart';
 import '../../widgets/ios_glass_dialog.dart';
+import '../../platform/ar_launcher_channel.dart';
+import '../../platform/audio_devices_channel.dart';
+import '../../platform/camera_list_channel.dart';
 import '../device_check/device_check_controller.dart';
 import '../permissions/permission_flow.dart';
+import 'launcher_preferences.dart';
+import 'widgets/audio_settings_sheet.dart';
+import 'widgets/camera_settings_sheet.dart';
+import 'widgets/hand_calibration_sheet.dart';
+import 'widgets/ipd_lens_sheet.dart';
 import 'package:ar_port/app/l10n/app_localizations.dart';
 
-/// Launcher Menu screen with hardware capability validation and permission flows.
+/// Full-featured iOS launcher menu for mode selection, device settings, and AR engine launch.
 class LauncherMenuScreen extends StatefulWidget {
   final DeviceCheckController? deviceCheckController;
+  final CameraListProvider? cameraListProvider;
+  final AudioDevicesProvider? audioDevicesProvider;
+  final ArLauncherProvider? arLauncherProvider;
+  final LauncherPreferences? preferences;
 
   const LauncherMenuScreen({
     super.key,
     this.deviceCheckController,
+    this.cameraListProvider,
+    this.audioDevicesProvider,
+    this.arLauncherProvider,
+    this.preferences,
   });
 
   @override
@@ -28,34 +43,77 @@ class LauncherMenuScreen extends StatefulWidget {
 
 class _LauncherMenuScreenState extends State<LauncherMenuScreen> {
   late final DeviceCheckController _checkController;
-  DeviceCheckResult? _checkResult;
-  bool _isLoadingCheck = true;
+  late final CameraListProvider _cameraProvider;
+  late final AudioDevicesProvider _audioProvider;
+  late final ArLauncherProvider _launcherProvider;
+  LauncherPreferences? _prefs;
 
+  DeviceCheckResult? _checkResult;
+  bool _isLoading = true;
+
+  // Configuration State
   int _viewMode = 0; // 0 = Stereo, 1 = Normal
-  bool _highFpsEnabled = true;
+  String _selectedCameraId = '0';
+  String _selectedResolution = '1080p';
+  int _selectedTargetFps = 60;
+  double _selectedIpdMm = 63.0;
+  String _selectedLensProfile = 'cardboard_v2';
+  int? _selectedAudioInputId;
+  int? _selectedAudioOutputId;
+
+  List<CameraInfo> _availableCameras = [];
+  List<AudioDeviceInfoModel> _inputDevices = [];
+  List<AudioDeviceInfoModel> _outputDevices = [];
 
   @override
   void initState() {
     super.initState();
     _checkController = widget.deviceCheckController ?? DeviceCheckController();
-    _runDeviceCheck();
+    _cameraProvider = widget.cameraListProvider ?? const CameraListChannel();
+    _audioProvider = widget.audioDevicesProvider ?? const AudioDevicesChannel();
+    _launcherProvider = widget.arLauncherProvider ?? const ArLauncherChannel();
+
+    _initializeScreen();
   }
 
-  Future<void> _runDeviceCheck() async {
-    final result = await _checkController.runCheck();
+  Future<void> _initializeScreen() async {
+    _prefs = widget.preferences ?? await LauncherPreferences.getInstance();
+
+    // Restore saved settings
+    if (_prefs != null) {
+      _viewMode = _prefs!.getViewMode();
+      _selectedCameraId = _prefs!.getCameraId();
+      _selectedResolution = _prefs!.getResolution();
+      _selectedTargetFps = _prefs!.getTargetFps();
+      _selectedIpdMm = _prefs!.getIpdMm();
+      _selectedLensProfile = _prefs!.getLensProfile();
+      _selectedAudioInputId = _prefs!.getAudioInputId();
+      _selectedAudioOutputId = _prefs!.getAudioOutputId();
+    }
+
+    // Check device capabilities
+    final check = await _checkController.runCheck();
+    final cameras = await _cameraProvider.getAvailableCameras();
+    final inputs = await _audioProvider.getInputDevices();
+    final outputs = await _audioProvider.getOutputDevices();
+
     if (!mounted) return;
 
     setState(() {
-      _checkResult = result;
-      _isLoadingCheck = false;
-      if (result.recommendLowSpecMode) {
-        _highFpsEnabled = false;
+      _checkResult = check;
+      _availableCameras = cameras;
+      _inputDevices = inputs;
+      _outputDevices = outputs;
+      _isLoading = false;
+
+      if (check.recommendLowSpecMode) {
+        _selectedTargetFps = 30;
       }
     });
 
-    if (result.isBlocked) {
+    if (check.isBlocked) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        _showBlockedDialog(result);
+        _showBlockedDialog(check);
       });
     }
   }
@@ -71,11 +129,90 @@ class _LauncherMenuScreenState extends State<LauncherMenuScreen> {
         IosDialogAction(
           title: 'Chiqish',
           isDestructive: true,
-          onPressed: () {
-            SystemNavigator.pop();
-          },
+          onPressed: () => SystemNavigator.pop(),
         ),
       ],
+    );
+  }
+
+  void _onViewModeChanged(int newMode) {
+    setState(() => _viewMode = newMode);
+    _prefs?.setViewMode(newMode);
+  }
+
+  Future<void> _openCameraSettings() async {
+    await CameraSettingsSheet.show(
+      context: context,
+      availableCameras: _availableCameras,
+      selectedCameraId: _selectedCameraId,
+      selectedResolution: _selectedResolution,
+      selectedFps: _selectedTargetFps,
+      onSave: (camId, res, fps) {
+        setState(() {
+          _selectedCameraId = camId;
+          _selectedResolution = res;
+          _selectedTargetFps = fps;
+        });
+        _prefs?.setCameraId(camId);
+        _prefs?.setResolution(res);
+        _prefs?.setTargetFps(fps);
+      },
+    );
+  }
+
+  Future<void> _openAudioInputSettings() async {
+    final granted = await PermissionFlow.requestMicrophonePermission(context);
+    if (!granted && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Mikrofon ruxsati berilmadi.')),
+      );
+      return;
+    }
+    if (!mounted) return;
+
+    await AudioSettingsSheet.show(
+      context: context,
+      title: 'Mikrofon tanlash',
+      devices: _inputDevices,
+      selectedDeviceId: _selectedAudioInputId,
+      onSelect: (dev) {
+        setState(() => _selectedAudioInputId = dev.id);
+        _prefs?.setAudioInputId(dev.id);
+        _audioProvider.setCommunicationDevice(dev.id);
+      },
+    );
+  }
+
+  Future<void> _openAudioOutputSettings() async {
+    await PermissionFlow.requestBluetoothPermission(context);
+    if (!mounted) return;
+
+    await AudioSettingsSheet.show(
+      context: context,
+      title: 'Karnay / Quloqchin tanlash',
+      devices: _outputDevices,
+      selectedDeviceId: _selectedAudioOutputId,
+      onSelect: (dev) {
+        setState(() => _selectedAudioOutputId = dev.id);
+        _prefs?.setAudioOutputId(dev.id);
+        _audioProvider.setCommunicationDevice(dev.id);
+      },
+    );
+  }
+
+  Future<void> _openIpdLensSettings() async {
+    await IpdLensSheet.show(
+      context: context,
+      initialIpdMm: _selectedIpdMm,
+      initialLensProfile: _selectedLensProfile,
+      onSave: (ipd, profile) {
+        setState(() {
+          _selectedIpdMm = ipd;
+          _selectedLensProfile = profile;
+        });
+        _prefs?.setIpdMm(ipd);
+        _prefs?.setLensProfile(profile);
+      },
     );
   }
 
@@ -88,21 +225,22 @@ class _LauncherMenuScreenState extends State<LauncherMenuScreen> {
       return;
     }
 
-    // Check camera permission
+    // Enforce camera permission
     final hasCamera = await PermissionFlow.ensureCameraPermission(context);
     if (!hasCamera) return;
 
-    if (!mounted) return;
-    // In QADAM 4, this launches ArActivity with the chosen settings
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-        content: Text(
-          'AR tayyorlanmoqda (${_viewMode == 0 ? "Stereo" : "Oddiy"}, ${check.trackingMode == TrackingMode.sixDof ? "6DoF" : "3DoF"})',
-        ),
-      ),
+    final config = ArLaunchConfig(
+      viewMode: _viewMode == 0 ? 'stereo' : 'normal',
+      cameraId: _selectedCameraId,
+      resolution: _selectedResolution,
+      targetFps: _selectedTargetFps,
+      ipdMm: _selectedIpdMm,
+      lensProfile: _selectedLensProfile,
+      audioInput: _selectedAudioInputId?.toString(),
+      audioOutput: _selectedAudioOutputId?.toString(),
     );
+
+    await _launcherProvider.launchAr(config);
   }
 
   @override
@@ -110,6 +248,29 @@ class _LauncherMenuScreenState extends State<LauncherMenuScreen> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final l10n = AppLocalizations.of(context)!;
+
+    final selectedCamera = _availableCameras.firstWhere(
+      (c) => c.id == _selectedCameraId,
+      orElse: () => const CameraInfo(
+        id: '0',
+        name: 'Orqa asosiy kamera',
+        isWideAngle: false,
+        supports1080p: true,
+        supports720p: true,
+        supports60Fps: true,
+        focalLength: 4.25,
+      ),
+    );
+
+    final selectedInput = _inputDevices.firstWhere(
+      (d) => d.id == _selectedAudioInputId,
+      orElse: () => const AudioDeviceInfoModel(id: 1, name: 'Telefon mikrofoni', type: 15, isBluetooth: false),
+    );
+
+    final selectedOutput = _outputDevices.firstWhere(
+      (d) => d.id == _selectedAudioOutputId,
+      orElse: () => const AudioDeviceInfoModel(id: 2, name: 'Telefon karnayi', type: 2, isBluetooth: false),
+    );
 
     return Scaffold(
       backgroundColor: isDark ? AppTheme.darkGroupedBackground : AppTheme.lightGroupedBackground,
@@ -124,7 +285,7 @@ class _LauncherMenuScreenState extends State<LauncherMenuScreen> {
             ),
 
             // Hardware Status Banner (6DoF / 3DoF / Blocked)
-            if (!_isLoadingCheck && _checkResult != null)
+            if (!_isLoading && _checkResult != null)
               _buildTrackingBadge(theme, isDark),
 
             // Card 1: View Mode Selection
@@ -168,7 +329,7 @@ class _LauncherMenuScreenState extends State<LauncherMenuScreen> {
                       ),
                     ],
                     selectedValue: _viewMode,
-                    onValueChanged: (val) => setState(() => _viewMode = val),
+                    onValueChanged: _onViewModeChanged,
                   ),
                 ],
               ),
@@ -177,10 +338,11 @@ class _LauncherMenuScreenState extends State<LauncherMenuScreen> {
             // Card 2: Settings Grouped List
             IosInsetGroup(
               header: l10n.deviceSettings,
-              footer: _checkResult?.warningMessage != null
-                  ? 'Ogohlantirish: ${_checkResult!.warningMessage!}'
-                  : 'Barcha sensorlar to‘g‘ri aniqlandi.',
+              footer: _viewMode == 0
+                  ? 'Stereo rejim uchun telefonni VR korpusga soling. Sukut IPD: 63.0 mm.'
+                  : 'Oddiy to‘liq ekran rejimi (telefonni qo‘lda tutib ishlatish uchun).',
               children: [
+                // Camera Setting
                 IosListTile(
                   leading: Container(
                     padding: const EdgeInsets.all(6),
@@ -191,12 +353,12 @@ class _LauncherMenuScreenState extends State<LauncherMenuScreen> {
                     child: const Icon(Icons.videocam_rounded, color: Colors.white, size: 20),
                   ),
                   title: l10n.camera,
-                  subtitle: _checkResult?.capabilities.hasBackCamera == true
-                      ? 'Orqa kamera tayyor'
-                      : 'Kamera aniqlanmadi',
+                  subtitle: '${selectedCamera.name} ($_selectedResolution, ${_selectedTargetFps}fps)',
                   showChevron: true,
-                  onTap: () {},
+                  onTap: _openCameraSettings,
                 ),
+
+                // Microphone Setting
                 IosListTile(
                   leading: Container(
                     padding: const EdgeInsets.all(6),
@@ -207,10 +369,12 @@ class _LauncherMenuScreenState extends State<LauncherMenuScreen> {
                     child: const Icon(Icons.mic_rounded, color: Colors.white, size: 20),
                   ),
                   title: l10n.microphone,
-                  subtitle: 'Telefon mikrofoni',
+                  subtitle: selectedInput.name,
                   showChevron: true,
-                  onTap: () => PermissionFlow.requestMicrophonePermission(context),
+                  onTap: _openAudioInputSettings,
                 ),
+
+                // Audio Output Setting
                 IosListTile(
                   leading: Container(
                     padding: const EdgeInsets.all(6),
@@ -221,40 +385,55 @@ class _LauncherMenuScreenState extends State<LauncherMenuScreen> {
                     child: const Icon(Icons.headphones_rounded, color: Colors.white, size: 20),
                   ),
                   title: l10n.audioOutput,
-                  subtitle: 'Karnay',
+                  subtitle: selectedOutput.name,
                   showChevron: true,
-                  onTap: () => PermissionFlow.requestBluetoothPermission(context),
+                  onTap: _openAudioOutputSettings,
                 ),
+
+                // Stereo Only: IPD and Lens Profile
+                if (_viewMode == 0)
+                  IosListTile(
+                    leading: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF007AFF),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(Icons.tune_rounded, color: Colors.white, size: 20),
+                    ),
+                    title: l10n.ipdAndLens,
+                    subtitle: '${_selectedIpdMm.toStringAsFixed(1)} mm • $_selectedLensProfile',
+                    showChevron: true,
+                    onTap: _openIpdLensSettings,
+                  ),
+
+                // Hand Calibration Tile
                 IosListTile(
                   leading: Container(
                     padding: const EdgeInsets.all(6),
                     decoration: BoxDecoration(
-                      color: theme.colorScheme.primary,
+                      color: const Color(0xFFFF2D55),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Icon(Icons.speed_rounded, color: Colors.white, size: 20),
+                    child: const Icon(Icons.pan_tool_rounded, color: Colors.white, size: 20),
                   ),
-                  title: '60 FPS Ultra-Low Latency',
-                  subtitle: _checkResult?.recommendLowSpecMode == true
-                      ? 'Qurilma resursi cheklangan, 30 FPS tavsiya'
-                      : null,
-                  trailing: IosSwitch(
-                    value: _highFpsEnabled,
-                    onChanged: (val) => setState(() => _highFpsEnabled = val),
-                  ),
+                  title: l10n.handCalibration,
+                  subtitle: 'Qo‘l kursorini kalibrlash',
+                  showChevron: true,
+                  onTap: () => HandCalibrationSheet.show(context),
                 ),
               ],
             ),
 
             const SizedBox(height: 12),
 
-            // Launch Button
+            // Big Launch AR Button
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: IosPrimaryButton(
                 text: l10n.launchAr,
                 icon: const Icon(Icons.play_arrow_rounded, color: Colors.white),
-                onPressed: _isLoadingCheck ? null : _handleLaunchAr,
+                onPressed: _isLoading ? null : _handleLaunchAr,
               ),
             ),
 

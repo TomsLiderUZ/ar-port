@@ -61,7 +61,7 @@ class DeviceCapabilityChannel implements DeviceCapabilityProvider {
       if (result != null) {
         return DeviceCapabilities.fromMap(result);
       }
-    } on PlatformException {
+    } catch (_) {
       // Fallback in case of platform error
     }
     return const DeviceCapabilities(
@@ -74,4 +74,3 @@ class DeviceCapabilityChannel implements DeviceCapabilityProvider {
     );
   }
 }
-

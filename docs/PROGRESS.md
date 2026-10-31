@@ -11,7 +11,7 @@ Ushbu hujjat har bir bosqich natijasini, qilingan ishlarni va ma'lum muammolarni
 | **1** | Muhit, loyiha skeleti va hujjatlar | ✅ Bajarildi | Flutter 3.47.9, JDK 17, Android SDK 35/36/37 o'rnatildi, arcore-engine moduli ulandi |
 | **2** | Flutter UI qobig'i: tema, iOS dizayn tizimi, Splash | ✅ Bajarildi | iOS UI komponentlari, Dynamic color/tizim temasi, Splash (≤1.2s), L10n (`uz`, `ru`, `en`) |
 | **3** | Qurilma tekshiruvi (giroskop) va ruxsatlar oqimi | ✅ Bajarildi | Native `DeviceEvaluator`, MethodChannel, giroskop yo'qligida bloklash dialogi, 3DoF/6DoF qaror mantiqi, ruxsatlar oqimi |
-| **4** | Boshlang'ich menyu (rejim + qurilma sozlamalari) | ⏳ Kutilmoqda | - |
+| **4** | Boshlang'ich menyu (rejim + qurilma sozlamalari) | ✅ Bajarildi | Stereo/oddiy rejim, Camera/Audio/IPD/Lens sozlamalari, SharedPreferences, `ArActivity` ishga tushishi |
 | **5** | AR dvigatel yadrosi: ArActivity, GL, kamera passthrough | ⏳ Kutilmoqda | - |
 | **6** | Harakat kuzatuvi va fazoda qotirish (world-lock) | ⏳ Kutilmoqda | - |
 | **7** | Stereo rejim | ⏳ Kutilmoqda | - |
@@ -69,7 +69,7 @@ Ushbu hujjat har bir bosqich natijasini, qilingan ishlarni va ma'lum muammolarni
 - **Sana:** 2026-10-31
 - **Bajarildi:**
   1. Native apparat tahlilchisi `DeviceEvaluator` (`arcore-engine` moduli) yaratildi:
-     - Giroskop / Rotation Vector (`SensorManager`)
+     - Giroskop va Rotation Vector (`SensorManager`)
      - Orqa kamera (`CameraManager`)
      - ARCore 6DoF mavjudligi (`ArCoreApk.checkAvailability`)
      - OpenGL ES 3.0+ qo'llab-quvvatlanishi (`reqGlEsVersion >= 0x00030000`)
@@ -83,3 +83,20 @@ Ushbu hujjat har bir bosqich natijasini, qilingan ishlarni va ma'lum muammolarni
   4. Ruxsatlar oqimi (`PermissionFlow`) yaratildi: Kamera (majburiy, rad etilsa sozlamalarga yo'naltiruvchi dialog), Mikrofon va Bluetooth (Android 12+) kontekstli so'rovlari.
   5. LauncherMenuScreen interfeysiga real apparat holati bannerlari (6DoF / 3DoF / Bloklangan) va ruxsat tekshiruvi bog'landi.
   6. To'liq birlik va widget testlari (`test/device_check_test.dart`) yozildi va barchasi (9 ta test) muvaffaqiyatli o'tdi.
+
+---
+
+## QADAM 4 Batafsil Hisoboti
+- **Sana:** 2026-10-31
+- **Bajarildi:**
+  1. Native apparat tahlilchilari yaratildi:
+     - `CameraEvaluator` (`uz.orbitx.arport/camera_list`): orqa kameralar, fokus uzunligi, keng burchak, 1080p/720p va 60fps/30fps aniqlash.
+     - `AudioEvaluator` (`uz.orbitx.arport/audio_devices`): kirish va chiqish audio qurilmalari (mikrofon, karnay, Bluetooth, USB) va marshrutlash.
+  2. Native `ArActivity` (landscape, to'liq ekranli immersive, `FLAG_KEEP_SCREEN_ON`) yaratildi va `AndroidManifest.xml` ga kiritildi; `MainActivity.kt` da `uz.orbitx.arport/launcher` orqali parametrlar (`viewMode`, `cameraId`, `resolution`, `targetFps`, `ipdMm`, `lensProfile`, `audioInput`, `audioOutput`) Intent extras orqali uzatildi.
+  3. Dart qatlamida `CameraListChannel`, `AudioDevicesChannel`, `ArLauncherChannel` hamda `LauncherPreferences` (SharedPreferences orqali barcha sozlamalarni saqlash va tiklash) yaratildi.
+  4. iOS interaktiv modal sheetlari yaratildi:
+     - `CameraSettingsSheet` (kamera linzasi, sifat 1080p/720p, 60/30 FPS)
+     - `AudioSettingsSheet` (mikrofon va karnay/quloqchin tanlash)
+     - `IpdLensSheet` (Stereo rejimda IPD 55–75 mm slayderi va linza profili)
+     - `HandCalibrationSheet` (qo'l kursorini kalibrlash bo'yicha ko'rsatma)
+  5. `LauncherMenuScreen` to'liq sozlamalar va rejimlar bilan boyitildi, birlik va widget testlari (`test/launcher_menu_test.dart`) yozildi va barcha 12 ta test muvaffaqiyatli o'tdi.

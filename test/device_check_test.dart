@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:ar_port/platform/audio_devices_channel.dart';
+import 'package:ar_port/platform/camera_list_channel.dart';
 import 'package:ar_port/platform/device_capability_channel.dart';
 import 'package:ar_port/features/device_check/device_check_controller.dart';
 import 'package:ar_port/features/launcher_menu/launcher_menu_screen.dart';
+import 'package:ar_port/features/launcher_menu/launcher_preferences.dart';
 import 'package:ar_port/widgets/ios_glass_dialog.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:ar_port/app/l10n/app_localizations.dart';
@@ -16,7 +20,52 @@ class MockCapabilityProvider implements DeviceCapabilityProvider {
   Future<DeviceCapabilities> checkCapabilities() async => capabilities;
 }
 
+class MockCameraProvider implements CameraListProvider {
+  @override
+  Future<List<CameraInfo>> getAvailableCameras() async {
+    return const [
+      CameraInfo(
+        id: '0',
+        name: 'Orqa asosiy kamera (#0)',
+        isWideAngle: false,
+        supports1080p: true,
+        supports720p: true,
+        supports60Fps: true,
+        focalLength: 4.25,
+      ),
+    ];
+  }
+}
+
+class MockAudioProvider implements AudioDevicesProvider {
+  @override
+  Future<List<AudioDeviceInfoModel>> getInputDevices() async {
+    return const [
+      AudioDeviceInfoModel(id: 1, name: 'Telefon mikrofoni', type: 15, isBluetooth: false),
+    ];
+  }
+
+  @override
+  Future<List<AudioDeviceInfoModel>> getOutputDevices() async {
+    return const [
+      AudioDeviceInfoModel(id: 2, name: 'Telefon karnayi', type: 2, isBluetooth: false),
+    ];
+  }
+
+  @override
+  Future<bool> setCommunicationDevice(int deviceId) async => true;
+}
+
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+  late LauncherPreferences launcherPrefs;
+
+  setUp(() async {
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+    launcherPrefs = LauncherPreferences(prefs);
+  });
+
   group('DeviceCheckController Decision Logic Unit Tests', () {
     test('Device without gyroscope is blocked (TZ 4.2)', () {
       const caps = DeviceCapabilities(
@@ -130,6 +179,9 @@ void main() {
         locale: const Locale('uz'),
         home: LauncherMenuScreen(
           deviceCheckController: DeviceCheckController(provider: provider),
+          cameraListProvider: MockCameraProvider(),
+          audioDevicesProvider: MockAudioProvider(),
+          preferences: launcherPrefs,
         ),
       );
     }
@@ -186,4 +238,3 @@ void main() {
     });
   });
 }
-
