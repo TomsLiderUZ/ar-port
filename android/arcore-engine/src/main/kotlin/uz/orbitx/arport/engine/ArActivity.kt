@@ -1,8 +1,10 @@
 package uz.orbitx.arport.engine
 
+import android.app.Dialog
 import android.content.Context
 import android.content.Intent
 import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.GradientDrawable
 import android.opengl.GLSurfaceView
 import android.os.Build
@@ -12,20 +14,23 @@ import android.os.Looper
 import android.view.Gravity
 import android.view.HapticFeedbackConstants
 import android.view.View
+import android.view.Window
 import android.view.WindowInsets
 import android.view.WindowInsetsController
 import android.view.WindowManager
 import android.widget.FrameLayout
 import android.widget.LinearLayout
+import android.widget.SeekBar
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import uz.orbitx.arport.engine.camera.PassthroughCameraManager
 import uz.orbitx.arport.engine.render.ArEngineRenderer
+import uz.orbitx.arport.engine.stereo.LensProfile
 import uz.orbitx.arport.engine.tracking.TrackingManager
 
 /**
  * Native Activity hosting the OpenGL ES 3.0 rendering cycle, CameraX passthrough,
- * and 3DoF/6DoF spatial motion tracking.
+ * 3DoF/6DoF spatial motion tracking, and Stereoscopic dual-viewport with Cardboard lens distortion.
  */
 class ArActivity : AppCompatActivity() {
 
@@ -70,12 +75,17 @@ class ArActivity : AppCompatActivity() {
     private var ipdMm: Double = 63.0
     private var lensProfile: String = "cardboard_v2"
 
+    private lateinit var rootLayout: FrameLayout
     private lateinit var glSurfaceView: GLSurfaceView
     private var trackingManager: TrackingManager? = null
     private var arRenderer: ArEngineRenderer? = null
     private var cameraManager: PassthroughCameraManager? = null
 
-    private lateinit var hudTextView: TextView
+    // Dual HUD (Left and Right eyes for stereoscopic comfort)
+    private lateinit var leftHudTextView: TextView
+    private lateinit var rightHudTextView: TextView
+    private lateinit var modeToggleButton: TextView
+
     private val mainHandler = Handler(Looper.getMainLooper())
     private var isHudActive = true
 
@@ -96,7 +106,7 @@ class ArActivity : AppCompatActivity() {
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         enableImmersiveMode()
 
-        val rootLayout = FrameLayout(this).apply {
+        rootLayout = FrameLayout(this).apply {
             setBackgroundColor(Color.BLACK)
         }
 
@@ -114,6 +124,7 @@ class ArActivity : AppCompatActivity() {
             viewMode = viewMode,
             trackingManager = tm,
             ipdMm = ipdMm,
+            lensProfileId = lensProfile,
             onSurfaceTextureReady = { surfaceTexture ->
                 runOnUiThread {
                     startCameraStream(surfaceTexture)
@@ -132,33 +143,71 @@ class ArActivity : AppCompatActivity() {
             FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT)
         )
 
-        // 3. Liquid Glass Debug HUD (Top-Left)
-        hudTextView = TextView(this).apply {
-            textSize = 12f
-            setTextColor(Color.WHITE)
-            setPadding(24, 14, 24, 14)
-            background = GradientDrawable().apply {
-                setColor(Color.parseColor("#991C1C1E")) // Frosted glass dark
-                cornerRadius = 24f
-                setStroke(1, Color.parseColor("#44FFFFFF"))
-            }
-            text = "AR Port • $viewMode | FPS: -- | Kechikish: --"
-        }
-
-        val hudParams = FrameLayout.LayoutParams(
+        // 3. Liquid Glass Dual Debug HUD (Left Eye & Right Eye)
+        leftHudTextView = createHudTextView()
+        val leftHudParams = FrameLayout.LayoutParams(
             FrameLayout.LayoutParams.WRAP_CONTENT,
             FrameLayout.LayoutParams.WRAP_CONTENT
         ).apply {
             gravity = Gravity.TOP or Gravity.START
             setMargins(32, 32, 0, 0)
         }
-        rootLayout.addView(hudTextView, hudParams)
+        rootLayout.addView(leftHudTextView, leftHudParams)
 
-        // 4. Top-Right Action Controls (Recenter + Close Buttons)
+        rightHudTextView = createHudTextView()
+        val rightHudParams = FrameLayout.LayoutParams(
+            FrameLayout.LayoutParams.WRAP_CONTENT,
+            FrameLayout.LayoutParams.WRAP_CONTENT
+        ).apply {
+            gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
+            setMargins(32, 32, 0, 0)
+        }
+        rootLayout.addView(rightHudTextView, rightHudParams)
+        updateHudVisibility()
+
+        // 4. Action Controls Bar (Top-Right)
         val actionRow = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
         }
+
+        // Mode Toggle Button (Stereo <-> Oddiy)
+        modeToggleButton = TextView(this).apply {
+            text = if (viewMode == "stereo") "👓 Stereo" else "📱 Oddiy"
+            textSize = 12f
+            setTextColor(Color.WHITE)
+            setPadding(24, 14, 24, 14)
+            background = createGlassBackground()
+            setOnClickListener {
+                performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                toggleViewMode()
+            }
+        }
+        actionRow.addView(
+            modeToggleButton,
+            LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+                setMargins(0, 0, 16, 0)
+            }
+        )
+
+        // Calibration Button (Linza va IPD)
+        val calibrationButton = TextView(this).apply {
+            text = "⚙️ Kalibratsiya"
+            textSize = 12f
+            setTextColor(Color.WHITE)
+            setPadding(24, 14, 24, 14)
+            background = createGlassBackground()
+            setOnClickListener {
+                performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                showCalibrationDialog()
+            }
+        }
+        actionRow.addView(
+            calibrationButton,
+            LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+                setMargins(0, 0, 16, 0)
+            }
+        )
 
         // Recenter (Markazlashtirish) Button
         val recenterButton = TextView(this).apply {
@@ -166,11 +215,7 @@ class ArActivity : AppCompatActivity() {
             textSize = 12f
             setTextColor(Color.WHITE)
             setPadding(24, 14, 24, 14)
-            background = GradientDrawable().apply {
-                setColor(Color.parseColor("#991C1C1E"))
-                cornerRadius = 24f
-                setStroke(1, Color.parseColor("#44FFFFFF"))
-            }
+            background = createGlassBackground()
             setOnClickListener {
                 performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
                 arRenderer?.recenter()
@@ -212,6 +257,145 @@ class ArActivity : AppCompatActivity() {
         startHudUpdater()
     }
 
+    private fun createHudTextView(): TextView {
+        return TextView(this).apply {
+            textSize = 11f
+            setTextColor(Color.WHITE)
+            setPadding(20, 12, 20, 12)
+            background = createGlassBackground()
+            text = "AR Port • $viewMode | FPS: --"
+        }
+    }
+
+    private fun createGlassBackground(): GradientDrawable {
+        return GradientDrawable().apply {
+            setColor(Color.parseColor("#991C1C1E"))
+            cornerRadius = 24f
+            setStroke(1, Color.parseColor("#44FFFFFF"))
+        }
+    }
+
+    private fun toggleViewMode() {
+        viewMode = if (viewMode == "stereo") "normal" else "stereo"
+        arRenderer?.viewMode = viewMode
+        modeToggleButton.text = if (viewMode == "stereo") "👓 Stereo" else "📱 Oddiy"
+        updateHudVisibility()
+    }
+
+    private fun updateHudVisibility() {
+        rightHudTextView.visibility = if (viewMode == "stereo") View.VISIBLE else View.GONE
+    }
+
+    private fun showCalibrationDialog() {
+        val dialog = Dialog(this)
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
+        dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+
+        val dialogLayout = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(40, 32, 40, 32)
+            background = GradientDrawable().apply {
+                setColor(Color.parseColor("#EE1C1C1E"))
+                cornerRadius = 32f
+                setStroke(1, Color.parseColor("#55FFFFFF"))
+            }
+        }
+
+        val title = TextView(this).apply {
+            text = "Stereo va Linza Kalibratsiyasi"
+            textSize = 16f
+            setTextColor(Color.WHITE)
+            gravity = Gravity.CENTER
+            setPadding(0, 0, 0, 24)
+        }
+        dialogLayout.addView(title)
+
+        // IPD Slider Row
+        val ipdLabel = TextView(this).apply {
+            text = "Ko'zlararo masofa (IPD): ${ipdMm.toInt()} mm"
+            textSize = 13f
+            setTextColor(Color.parseColor("#DDFFFFFF"))
+            setPadding(0, 0, 0, 8)
+        }
+        dialogLayout.addView(ipdLabel)
+
+        val ipdSeekBar = SeekBar(this).apply {
+            max = 20 // 55 to 75
+            progress = (ipdMm - 55.0).toInt().coerceIn(0, 20)
+            setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+                override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                    val newIpd = 55.0 + progress
+                    ipdMm = newIpd
+                    ipdLabel.text = "Ko'zlararo masofa (IPD): ${newIpd.toInt()} mm"
+                    arRenderer?.updateStereoSettings(ipdMm, lensProfile)
+                }
+                override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+                override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+            })
+        }
+        dialogLayout.addView(ipdSeekBar)
+
+        // Lens Profile Choices
+        val lensLabel = TextView(this).apply {
+            text = "Linza profili:"
+            textSize = 13f
+            setTextColor(Color.parseColor("#DDFFFFFF"))
+            setPadding(0, 24, 0, 12)
+        }
+        dialogLayout.addView(lensLabel)
+
+        val lensRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
+        }
+
+        val profiles = listOf(
+            LensProfile.CARDBOARD_V2,
+            LensProfile.CARDBOARD_V1,
+            LensProfile.NONE
+        )
+
+        for (p in profiles) {
+            val btn = TextView(this).apply {
+                text = p.name.replace("Google ", "")
+                textSize = 11f
+                setPadding(20, 14, 20, 14)
+                setTextColor(if (lensProfile == p.id) Color.parseColor("#0A84FF") else Color.WHITE)
+                background = GradientDrawable().apply {
+                    setColor(if (lensProfile == p.id) Color.parseColor("#330A84FF") else Color.parseColor("#44333333"))
+                    cornerRadius = 20f
+                    setStroke(1, if (lensProfile == p.id) Color.parseColor("#0A84FF") else Color.parseColor("#33FFFFFF"))
+                }
+                setOnClickListener {
+                    lensProfile = p.id
+                    arRenderer?.updateStereoSettings(ipdMm, lensProfile)
+                    dialog.dismiss()
+                    showCalibrationDialog() // refresh styles
+                }
+            }
+            lensRow.addView(btn, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
+                setMargins(8, 0, 8, 0)
+            })
+        }
+        dialogLayout.addView(lensRow)
+
+        // Done Button
+        val doneBtn = TextView(this).apply {
+            text = "Tayyor"
+            textSize = 14f
+            setTextColor(Color.WHITE)
+            gravity = Gravity.CENTER
+            setPadding(0, 20, 0, 8)
+            setOnClickListener {
+                dialog.dismiss()
+            }
+        }
+        dialogLayout.addView(doneBtn)
+
+        dialog.setContentView(dialogLayout)
+        dialog.show()
+    }
+
     private fun startCameraStream(surfaceTexture: android.graphics.SurfaceTexture) {
         cameraManager = PassthroughCameraManager(
             context = this,
@@ -233,12 +417,16 @@ class ArActivity : AppCompatActivity() {
                 val fps = arRenderer?.getFps() ?: 0f
                 val latency = arRenderer?.getLatencyMs() ?: 0f
                 val trackingLabel = trackingManager?.getTrackingModeLabel() ?: "3DoF"
-                val modeLabel = if (viewMode == "stereo") "Stereo (IPD: ${ipdMm}mm)" else "Oddiy"
+                val modeLabel = if (viewMode == "stereo") "Stereo (IPD: ${ipdMm.toInt()}mm)" else "Oddiy"
 
-                hudTextView.text = String.format(
+                val hudText = String.format(
                     "AR Port • %s | %s\nFPS: %.1f | Kechikish: %.1f ms | %s",
                     modeLabel, trackingLabel, fps, latency, resolution
                 )
+                leftHudTextView.text = hudText
+                if (viewMode == "stereo") {
+                    rightHudTextView.text = hudText
+                }
                 mainHandler.postDelayed(this, 500)
             }
         }

@@ -14,7 +14,7 @@ Ushbu hujjat har bir bosqich natijasini, qilingan ishlarni va ma'lum muammolarni
 | **4** | Boshlang'ich menyu (rejim + qurilma sozlamalari) | ✅ Bajarildi | Stereo/oddiy rejim, Camera/Audio/IPD/Lens sozlamalari, SharedPreferences, `ArActivity` ishga tushishi |
 | **5** | AR dvigatel yadrosi: ArActivity, GL, kamera passthrough | ✅ Bajarildi | OpenGL ES 3.0, CameraX OES Zero-Copy rendering, past kechikish sozlamalari, FPS tracker, Liquid Glass HUD |
 | **6** | Harakat kuzatuvi va fazoda qotirish (world-lock) | ✅ Bajarildi | TrackingManager (3DoF/6DoF), kvaternion silliqlash va 16ms bashorat, View/Projection matritsalar, WorldObjectRenderer (fazoda qotuvchi 3D test oynasi), Markazlashtirish (recenter) |
-| **7** | Stereo rejim | ⏳ Kutilmoqda | - |
+| **7** | Stereo rejim | ✅ Bajarildi | StereoRenderer (dual FBO, Cardboard v2 barrel distortion, k1/k2, IPD siljishi, markaziy ajratuvchi chiziq, jonli kalibratsiya dialogi, real vaqtda Stereo ↔ Oddiy almashinuvi, dual stereoscopic HUD) |
 | **8** | Fazoviy oyna menejeri va yuza (surface) tizimi | ⏳ Kutilmoqda | - |
 | **9** | Liquid Glass renderer | ⏳ Kutilmoqda | - |
 | **10** | Qo'l kuzatuvi (MediaPipe) va qo'l yoritilishi | ⏳ Kutilmoqda | - |
@@ -115,5 +115,30 @@ Ushbu hujjat har bir bosqich natijasini, qilingan ishlarni va ma'lum muammolarni
      - Jonli Debug HUD datchik holatini ("3DoF (Giroskop)" yoki "6DoF (ARCore)") aks ettiradi.
   6. Tekshiruv va sinovlar:
      - JVM unit testlari (`QuaternionTest.kt` da 7 ta test: identity, normalize, multiplication, inverse/conjugate, slerp, yaw/recenter, matrix round-trip) to'liq muvaffaqiyatli o'tdi (`BUILD SUCCESSFUL`).
+     - Flutter testlari (12 ta test) va Flutter statik tahlili (`flutter analyze` — 0 ogohlantirish) to'liq o'tdi.
+     - Debug APK (`flutter build apk --debug`) muvaffaqiyatli yig'ildi (`build\app\outputs\flutter-apk\app-debug.apk`, 215.8 MB).
+
+---
+
+## QADAM 7 Batafsil Hisoboti
+- **Sana:** 2026-10-31
+- **Bajarildi:**
+  1. Optik linza profillari modeli (`LensProfile.kt`): Google Cardboard v2 ($k_1 = 0.34, k_2 = 0.55$), Google Cardboard v1 ($k_1 = 0.441, k_2 = 0.156$) va tekis distorsiyasiz ($k_1 = 0, k_2 = 0$) profillar tayyorlandi.
+  2. Stereo renderlash tizimi (`StereoRenderer.kt`):
+     - Chap va o'ng ko'zlar uchun alohida offscreen FBO (Color Texture + Depth Renderbuffer).
+     - Barrel distorsiyasi (pincushion optik egrilikni yo'qotuvchi shader pass: $r' = r \cdot (1 + k_1 r^2 + k_2 r^4)$).
+     - Optik chegaradan tashqariga chiqqan piksellarni vinetkalash (vignette black).
+     - IPD bo'yicha linza markazi siljishi ($uLensCenter$).
+     - Ikki ko'z orasidagi optik o'tishni to'suvchi vertikal markaziy ajratuvchi chiziq (Cardboard divider).
+  3. Render sikli integratsiyasi (`ArEngineRenderer.kt`):
+     - Stereo rejimda chap ko'z sahnasini chap FBO ga, o'ng ko'z sahnasini o'ng FBO ga chizib, so'ng `StereoRenderer.finishAndDistort()` orqali ekranga barrel distorsiya bilan uzatadi.
+     - Oddiy rejimda FBO lar aylanib o'tilib, to'g'ridan-to'g'ri to'liq ekranga (single viewport) render qilinadi.
+     - Jonli sozlamalar yangilanishi (`updateStereoSettings`).
+  4. Foydalanuvchi interfeysi va boshqaruv (`ArActivity.kt`):
+     - "👓 Stereo" ↔ "📱 Oddiy" tezkor rejim almashtirish tugmasi.
+     - "⚙️ Kalibratsiya" frosted glass modal dialogi: jonli IPD slayderi (55 mm – 75 mm) va linza profili tanlovi (Cardboard v2, Cardboard v1, Distorsiyasiz).
+     - Dual Stereoscopic HUD: stereo rejimda ko'z zo'riqishi (diplopia) ning oldini olish maqsadida ma'lumotlar ikkala ko'z oynasida bir xil nisbatda chiziladi (TZ 5.3).
+  5. Tekshiruv va sinovlar:
+     - JVM unit testlari (`StereoTest.kt` va `QuaternionTest.kt` bo'yicha 10 ta test) muvaffaqiyatli o'tdi (`BUILD SUCCESSFUL`).
      - Flutter testlari (12 ta test) va Flutter statik tahlili (`flutter analyze` — 0 ogohlantirish) to'liq o'tdi.
      - Debug APK (`flutter build apk --debug`) muvaffaqiyatli yig'ildi (`build\app\outputs\flutter-apk\app-debug.apk`, 215.8 MB).
