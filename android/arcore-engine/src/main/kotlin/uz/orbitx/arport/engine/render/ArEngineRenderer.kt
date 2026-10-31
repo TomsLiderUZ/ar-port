@@ -357,16 +357,45 @@ class ArEngineRenderer(
             return
         }
 
-        // 4. WebAppSurface interaction (Content area click/scroll)
+        // 4. WebAppSurface interaction (Content area click/scroll/gestures)
         val webSurface = appRegistry.activeWebSurfaces[event.window?.id]
         if (webSurface != null && event.component == uz.orbitx.arport.engine.window.SpatialWindow.WindowComponent.CONTENT_AREA) {
             when (event.type) {
                 GestureType.TAP -> {
                     webSurface.dispatchTouchEvent(event.u, event.v, android.view.MotionEvent.ACTION_DOWN)
                     webSurface.dispatchTouchEvent(event.u, event.v, android.view.MotionEvent.ACTION_UP)
+                    webSurface.sendGameGesture("TAP")
                 }
                 GestureType.SCROLL, GestureType.DRAG -> {
                     webSurface.dispatchTouchEvent(event.u, event.v, android.view.MotionEvent.ACTION_MOVE)
+                    webSurface.sendGameGesture("DRAG")
+                }
+                GestureType.SWIPE_LEFT -> {
+                    webSurface.sendGameGesture("SWIPE_LEFT")
+                    if (event.window?.appId in setOf("tetris", "dino", "flappy", "snake", "g2048", "chess")) {
+                        return
+                    }
+                }
+                GestureType.SWIPE_RIGHT -> {
+                    webSurface.sendGameGesture("SWIPE_RIGHT")
+                    if (event.window?.appId in setOf("tetris", "dino", "flappy", "snake", "g2048", "chess")) {
+                        return
+                    }
+                }
+                GestureType.SWIPE_UP -> {
+                    webSurface.sendGameGesture("SWIPE_UP")
+                    if (event.window?.appId in setOf("tetris", "dino", "flappy", "snake", "g2048", "chess")) {
+                        return
+                    }
+                }
+                GestureType.SWIPE_DOWN -> {
+                    webSurface.sendGameGesture("SWIPE_DOWN")
+                    if (event.window?.appId in setOf("tetris", "dino", "flappy", "snake", "g2048", "chess")) {
+                        return
+                    }
+                }
+                GestureType.PINCH -> {
+                    webSurface.sendGameGesture("PINCH")
                 }
                 else -> {}
             }

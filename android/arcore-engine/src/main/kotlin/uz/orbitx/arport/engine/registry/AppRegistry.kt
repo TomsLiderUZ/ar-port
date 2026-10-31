@@ -134,8 +134,8 @@ class AppRegistry(private val context: Context? = null) {
         val surfW = if (isPortrait) 720 else 1280
         val surfH = if (isPortrait) 1280 else 720
 
-        // If Web App and Context available, instantiate real offscreen WebAppSurface
-        if (context != null && manifest.type == "web") {
+        // If Web App or Game and Context available, instantiate real offscreen WebAppSurface
+        if (context != null && (manifest.type == "web" || manifest.type == "game2d" || manifest.type == "game")) {
             try {
                 val showNav = (manifest.id == "google")
                 val webSurface = WebAppSurface(

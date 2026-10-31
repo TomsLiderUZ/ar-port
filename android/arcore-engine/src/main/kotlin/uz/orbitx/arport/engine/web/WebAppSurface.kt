@@ -53,6 +53,14 @@ class WebAppSurface(
 
     companion object {
         const val NAV_BAR_HEIGHT = 68f
+
+        fun resolveEntryUrl(entry: String): String {
+            if (entry.startsWith("http://") || entry.startsWith("https://") || entry.startsWith("file://")) {
+                return entry
+            }
+            val cleanPath = entry.removePrefix("assets/").removePrefix("/")
+            return "file:///android_asset/$cleanPath"
+        }
     }
 
     init {
@@ -74,6 +82,8 @@ class WebAppSurface(
             settings.javaScriptEnabled = true
             settings.domStorageEnabled = true
             settings.databaseEnabled = true
+            settings.allowFileAccess = true
+            settings.allowContentAccess = true
             settings.mediaPlaybackRequiresUserGesture = false
             settings.mixedContentMode = WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
             settings.loadWithOverviewMode = true
@@ -148,10 +158,26 @@ class WebAppSurface(
             }
 
             webView = wv
-            wv.loadUrl(manifest.entry)
+            val initialUrl = resolveEntryUrl(manifest.entry)
+            currentUrl = initialUrl
+            wv.loadUrl(initialUrl)
         } catch (_: Exception) {
             // Safe fallback for mocked/headless environments
             renderPlaceholderFrame()
+        }
+    }
+
+    /**
+     * Sends an AR spatial gesture directly to the web app / game via JavaScript hook.
+     */
+    fun sendGameGesture(gestureType: String) {
+        mainHandler.post {
+            try {
+                webView?.evaluateJavascript(
+                    "if (typeof window.onArGesture === 'function') { window.onArGesture('$gestureType'); }",
+                    null
+                )
+            } catch (_: Exception) {}
         }
     }
 

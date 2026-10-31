@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>AR Shaxmat</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+  body {
+    background: radial-gradient(circle at 50% 20%, #1e2430 0%, #0d1017 100%);
+    color: #fff;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    overflow: hidden;
+  }
+  .glass-card {
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 20px;
+    box-shadow: 0 16px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.2);
+  }
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 95%;
+    max-width: 960px;
+    margin-bottom: 8px;
+    padding: 8px 18px;
+  }
+  .title { font-size: 20px; font-weight: 800; color: #64d2ff; text-shadow: 0 0 12px rgba(100,210,255,0.4); }
+  .header-actions { display: flex; gap: 8px; align-items: center; }
+  .btn-online {
+    padding: 8px 16px;
+    font-size: 13px;
+    font-weight: 700;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #0a84ff, #005bb5);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    color: #fff;
+    cursor: pointer;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.15s ease;
+  }
+  .btn-online:active { transform: scale(0.96); }
+
+  .game-area {
+    display: flex;
+    gap: 16px;
+    width: 95%;
+    max-width: 960px;
+    align-items: flex-start;
+    justify-content: center;
+  }
+  .board-container {
+    width: 440px;
+    height: 440px;
+    background: rgba(15, 20, 28, 0.85);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: 16px;
+    padding: 8px;
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    grid-template-rows: repeat(8, 1fr);
+    box-shadow: 0 16px 36px rgba(0,0,0,0.6);
+  }
+  .sq {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 38px;
+    cursor: pointer;
+    position: relative;
+    transition: background 0.1s ease;
+  }
+  .sq.light { background: rgba(255, 255, 255, 0.18); }
+  .sq.dark { background: rgba(20, 32, 48, 0.6); }
+  .sq.selected { background: rgba(10, 132, 255, 0.6) !important; }
+  .sq.legal::after {
+    content: '';
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: rgba(48, 209, 88, 0.85);
+    box-shadow: 0 0 10px rgba(48, 209, 88, 0.9);
+  }
+  .sq.last-move { background: rgba(255, 214, 10, 0.3) !important; }
+
+  .sidebar {
+    flex: 1;
+    max-width: 320px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .panel { padding: 12px 16px; }
+  .panel-title { font-size: 12px; text-transform: uppercase; color: #8e8e93; font-weight: 700; margin-bottom: 6px; }
+  .turn-banner { font-size: 18px; font-weight: 800; color: #ffd60a; display: flex; align-items: center; gap: 8px; }
+  .captured-tray { min-height: 28px; font-size: 20px; word-spacing: 2px; }
+  .history-box {
+    max-height: 110px;
+    overflow-y: auto;
+    font-size: 13px;
+    font-family: monospace;
+    line-height: 1.5;
+    color: #e0e0e0;
+  }
+  .controls-row { display: flex; gap: 8px; }
+  .btn-sub {
+    flex: 1;
+    padding: 10px;
+    text-align: center;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+  }
+  .btn-sub:active { transform: scale(0.95); background: rgba(255,255,255,0.18); }
+
+  .overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.8);
+    backdrop-filter: blur(14px);
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+  }
+  .overlay.active { display: flex; }
+  .modal-title { font-size: 30px; font-weight: 900; color: #ffd60a; margin-bottom: 6px; }
+  .modal-btn {
+    margin-top: 16px;
+    padding: 12px 32px;
+    font-size: 16px;
+    background: #0a84ff;
+    border-radius: 24px;
+    color: #fff;
+    font-weight: 800;
+    cursor: pointer;
+  }
+</style>
+</head>
+<body>
+
+<header class="glass-card">
+  <div class="title">♟️ AR Shaxmat</div>
+  <div class="header-actions">
+    <div class="btn-online" id="btnChessCom">
+      <span>🌐 Chess.com (Onlayn)</span>
+    </div>
+  </div>
+</header>
+
+<div class="game-area">
+  <div class="board-container" id="boardEl">
+    <!-- 64 squares -->
+  </div>
+
+  <div class="sidebar">
+    <div class="panel glass-card">
+      <div class="panel-title">Navbat</div>
+      <div class="turn-banner" id="turnIndicator">
+        <span id="turnDot">⚪</span> <span id="turnText">Oqlar (Siz)</span>
+      </div>
+    </div>
+
+    <div class="panel glass-card">
+      <div class="panel-title">Urib olingan donalar</div>
+      <div class="captured-tray" id="capturedWhite"></div>
+      <div class="captured-tray" id="capturedBlack"></div>
+    </div>
+
+    <div class="panel glass-card">
+      <div class="panel-title">Yurishlar tarixi</div>
+      <div class="history-box" id="historyBox">O'yin boshlandi.</div>
+    </div>
+
+    <div class="controls-row">
+      <div class="btn-sub" id="btnBotLevel">Bot: O'rta</div>
+      <div class="btn-sub" id="btnRestart">🔄 Yangi</div>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="modal-title" id="modalTitle">SHOH VA MOT!</div>
+  <div style="font-size: 18px; color: #fff;" id="modalDesc">Oqlar g'alaba qozondi!</div>
+  <div class="modal-btn" id="modalBtn">Qayta o'ynash</div>
+</div>
+
+<script>
+const boardEl = document.getElementById('boardEl');
+
+// Piece Glyphs
+const PIECES = {
+  'K': '♔', 'Q': '♕', 'R': '♖', 'B': '♗', 'N': '♘', 'P': '♙',
+  'k': '♚', 'q': '♛', 'r': '♜', 'b': '♝', 'n': '♞', 'p': '♟'
+};
+
+// Starting FIDE Board
+let initialBoard = [
+  ['r', 'n', 'b', 'q', 'k', 'b', 'n', 'r'],
+  ['p', 'p', 'p', 'p', 'p', 'p', 'p', 'p'],
+  ['',  '',  '',  '',  '',  '',  '',  ''],
+  ['',  '',  '',  '',  '',  '',  '',  ''],
+  ['',  '',  '',  '',  '',  '',  '',  ''],
+  ['',  '',  '',  '',  '',  '',  '',  ''],
+  ['P', 'P', 'P', 'P', 'P', 'P', 'P', 'P'],
+  ['R', 'N', 'B', 'Q', 'K', 'B', 'N', 'R']
+];
+
+let board = initialBoard.map(r => [...r]);
+let turn = 'w'; // 'w' = White, 'b' = Black (Bot)
+let selectedSq = null;
+let legalMoves = [];
+let lastMove = null;
+let moveHistory = [];
+let capturedByWhite = [];
+let capturedByBlack = [];
+let botDepth = 2; // 1 = Easy, 2 = Medium, 3 = Hard
+let isGameOver = false;
+
+// Audio Synth
+const AudioContext = window.AudioContext || window.webkitAudioContext;
+let audioCtx = null;
+function playSound(freq, duration = 0.08, type = 'sine') {
+  try {
+    if (!audioCtx) audioCtx = new AudioContext();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+    gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + duration);
+  } catch(e){}
+}
+
+function isWhite(piece) { return piece && piece === piece.toUpperCase(); }
+function isBlack(piece) { return piece && piece === piece.toLowerCase(); }
+
+function initBoardDOM() {
+  boardEl.innerHTML = '';
+  for (let r = 0; r < 8; r++) {
+    for (let c = 0; c < 8; c++) {
+      const sq = document.createElement('div');
+      sq.className = `sq ${(r + c) % 2 === 0 ? 'light' : 'dark'}`;
+      sq.id = `sq-${r}-${c}`;
+      sq.addEventListener('click', () => onSquareClick(r, c));
+      boardEl.appendChild(sq);
+    }
+  }
+}
+
+function renderBoard() {
+  for (let r = 0; r < 8; r++) {
+    for (let c = 0; c < 8; c++) {
+      const sq = document.getElementById(`sq-${r}-${c}`);
+      sq.className = `sq ${(r + c) % 2 === 0 ? 'light' : 'dark'}`;
+      const piece = board[r][c];
+      sq.innerText = piece ? PIECES[piece] : '';
+
+      if (selectedSq && selectedSq.r === r && selectedSq.c === c) {
+        sq.classList.add('selected');
+      }
+      if (legalMoves.some(m => m.toR === r && m.toC === c)) {
+        sq.classList.add('legal');
+      }
+      if (lastMove && ((lastMove.fromR === r && lastMove.fromC === c) || (lastMove.toR === r && lastMove.toC === c))) {
+        sq.classList.add('last-move');
+      }
+    }
+  }
+  document.getElementById('turnDot').innerText = turn === 'w' ? '⚪' : '⚫';
+  document.getElementById('turnText').innerText = turn === 'w' ? 'Oqlar (Siz)' : 'Qoralar (Bot)';
+  document.getElementById('capturedWhite').innerText = capturedByWhite.map(p => PIECES[p]).join(' ');
+  document.getElementById('capturedBlack').innerText = capturedByBlack.map(p => PIECES[p]).join(' ');
+}
+
+// Generate raw moves for a square
+function getRawMoves(r, c, b = board) {
+  const p = b[r][c];
+  if (!p) return [];
+  const white = isWhite(p);
+  const moves = [];
+
+  const addIfValid = (nr, nc) => {
+    if (nr < 0 || nr >= 8 || nc < 0 || nc >= 8) return false;
+    const target = b[nr][nc];
+    if (!target) {
+      moves.push({ fromR: r, fromC: c, toR: nr, toC: nc });
+      return true;
+    }
+    if (white ? isBlack(target) : isWhite(target)) {
+      moves.push({ fromR: r, fromC: c, toR: nr, toC: nc });
+    }
+    return false; // Hit piece, stop ray
+  };
+
+  const type = p.toUpperCase();
+  if (type === 'P') {
+    const dir = white ? -1 : 1;
+    const startRow = white ? 6 : 1;
+    // 1 step forward
+    if (r + dir >= 0 && r + dir < 8 && !b[r + dir][c]) {
+      moves.push({ fromR: r, fromC: c, toR: r + dir, toC: c });
+      // 2 steps forward
+      if (r === startRow && !b[r + dir * 2][c]) {
+        moves.push({ fromR: r, fromC: c, toR: r + dir * 2, toC: c });
+      }
+    }
+    // Diagonal capture
+    [-1, 1].forEach(dc => {
+      const nc = c + dc;
+      if (nc >= 0 && nc < 8 && r + dir >= 0 && r + dir < 8) {
+        const target = b[r + dir][nc];
+        if (target && (white ? isBlack(target) : isWhite(target))) {
+          moves.push({ fromR: r, fromC: c, toR: r + dir, toC: nc });
+        }
+      }
+    });
+  } else if (type === 'N') {
+    const jumps = [[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]];
+    jumps.forEach(([dr, dc]) => addIfValid(r + dr, c + dc));
+  } else if (type === 'B') {
+    const dirs = [[-1,-1],[-1,1],[1,-1],[1,1]];
+    dirs.forEach(([dr, dc]) => {
+      let step = 1;
+      while (addIfValid(r + dr * step, c + dc * step)) step++;
+    });
+  } else if (type === 'R') {
+    const dirs = [[-1,0],[1,0],[0,-1],[0,1]];
+    dirs.forEach(([dr, dc]) => {
+      let step = 1;
+      while (addIfValid(r + dr * step, c + dc * step)) step++;
+    });
+  } else if (type === 'Q') {
+    const dirs = [[-1,-1],[-1,1],[1,-1],[1,1],[-1,0],[1,0],[0,-1],[0,1]];
+    dirs.forEach(([dr, dc]) => {
+      let step = 1;
+      while (addIfValid(r + dr * step, c + dc * step)) step++;
+    });
+  } else if (type === 'K') {
+    const dirs = [[-1,-1],[-1,1],[1,-1],[1,1],[-1,0],[1,0],[0,-1],[0,1]];
+    dirs.forEach(([dr, dc]) => addIfValid(r + dr, c + dc));
+  }
+  return moves;
+}
+
+function onSquareClick(r, c) {
+  if (isGameOver || turn !== 'w') return;
+
+  const clickedPiece = board[r][c];
+
+  if (selectedSq) {
+    const move = legalMoves.find(m => m.toR === r && m.toC === c);
+    if (move) {
+      executeMove(move);
+      selectedSq = null;
+      legalMoves = [];
+      return;
+    }
+  }
+
+  if (clickedPiece && isWhite(clickedPiece)) {
+    selectedSq = { r, c };
+    legalMoves = getRawMoves(r, c);
+    playSound(400, 0.04);
+  } else {
+    selectedSq = null;
+    legalMoves = [];
+  }
+  renderBoard();
+}
+
+function executeMove(m) {
+  const piece = board[m.fromR][m.fromC];
+  const captured = board[m.toR][m.toC];
+
+  board[m.toR][m.toC] = piece;
+  board[m.fromR][m.fromC] = '';
+
+  // Pawn promotion to Queen
+  if (piece === 'P' && m.toR === 0) board[m.toR][m.toC] = 'Q';
+  if (piece === 'p' && m.toR === 7) board[m.toR][m.toC] = 'q';
+
+  if (captured) {
+    if (isWhite(captured)) capturedByBlack.push(captured);
+    else capturedByWhite.push(captured);
+    playSound(300, 0.1, 'sawtooth');
+  } else {
+    playSound(480, 0.06, 'triangle');
+  }
+
+  lastMove = m;
+  const colNames = ['a','b','c','d','e','f','g','h'];
+  const moveStr = `${piece.toUpperCase()}${colNames[m.toC]}${8 - m.toR}`;
+  moveHistory.push(moveStr);
+  updateHistoryDisplay();
+
+  turn = turn === 'w' ? 'b' : 'w';
+  renderBoard();
+
+  // Check King capture / end
+  if (captured && captured.toUpperCase() === 'K') {
+    endGame(turn === 'w' ? 'Qoralar g\'alaba qozondi!' : 'Oqlar g\'alaba qozondi!');
+    return;
+  }
+
+  if (turn === 'b' && !isGameOver) {
+    setTimeout(makeBotMove, 400);
+  }
+}
+
+function updateHistoryDisplay() {
+  const box = document.getElementById('historyBox');
+  let text = '';
+  for (let i = 0; i < moveHistory.length; i += 2) {
+    const moveNum = Math.floor(i / 2) + 1;
+    const w = moveHistory[i] || '';
+    const b = moveHistory[i + 1] || '';
+    text += `${moveNum}. ${w} ${b}\n`;
+  }
+  box.innerText = text;
+  box.scrollTop = box.scrollHeight;
+}
+
+// Bot AI Evaluation
+const PIECE_VALUES = {
+  'p': 100, 'n': 320, 'b': 330, 'r': 500, 'q': 900, 'k': 20000,
+  'P': 100, 'N': 320, 'B': 330, 'R': 500, 'Q': 900, 'K': 20000
+};
+
+function evaluateBoard(b) {
+  let total = 0;
+  for (let r = 0; r < 8; r++) {
+    for (let c = 0; c < 8; c++) {
+      const p = b[r][c];
+      if (!p) continue;
+      const val = PIECE_VALUES[p] || 0;
+      if (isBlack(p)) total += val;
+      else total -= val;
+    }
+  }
+  return total;
+}
+
+function getAllMoves(color, b) {
+  const moves = [];
+  for (let r = 0; r < 8; r++) {
+    for (let c = 0; c < 8; c++) {
+      const p = b[r][c];
+      if (color === 'b' ? isBlack(p) : isWhite(p)) {
+        moves.push(...getRawMoves(r, c, b));
+      }
+    }
+  }
+  return moves;
+}
+
+function makeBotMove() {
+  if (isGameOver) return;
+  const blackMoves = getAllMoves('b', board);
+  if (blackMoves.length === 0) {
+    endGame('Oqlar g\'alaba qozondi (Pat/Mot)!');
+    return;
+  }
+
+  let bestMove = blackMoves[0];
+  let bestScore = -999999;
+
+  for (const m of blackMoves) {
+    const saved = board[m.toR][m.toC];
+    board[m.toR][m.toC] = board[m.fromR][m.fromC];
+    board[m.fromR][m.fromC] = '';
+
+    let score = evaluateBoard(board);
+    // Depth 2 minimax
+    if (botDepth > 1) {
+      const whiteMoves = getAllMoves('w', board);
+      let minWhiteScore = 999999;
+      for (const wm of whiteMoves.slice(0, 8)) {
+        const wSaved = board[wm.toR][wm.toC];
+        board[wm.toR][wm.toC] = board[wm.fromR][wm.fromC];
+        board[wm.fromR][wm.fromC] = '';
+        const s = evaluateBoard(board);
+        if (s < minWhiteScore) minWhiteScore = s;
+        board[wm.fromR][wm.fromC] = board[wm.toR][wm.toC];
+        board[wm.toR][wm.toC] = wSaved;
+      }
+      score = minWhiteScore !== 999999 ? minWhiteScore : score;
+    }
+
+    board[m.fromR][m.fromC] = board[m.toR][m.toC];
+    board[m.toR][m.toC] = saved;
+
+    if (score > bestScore) {
+      bestScore = score;
+      bestMove = m;
+    }
+  }
+
+  executeMove(bestMove);
+}
+
+function endGame(desc) {
+  isGameOver = true;
+  playSound(600, 0.4, 'triangle');
+  document.getElementById('modalTitle').innerText = "O'YIN YAKUNLANDI!";
+  document.getElementById('modalDesc').innerText = desc;
+  document.getElementById('overlay').classList.add('active');
+
+  const wins = parseInt(localStorage.getItem('ar_port_chess_wins') || '0');
+  if (desc.includes('Oqlar')) {
+    localStorage.setItem('ar_port_chess_wins', wins + 1);
+  }
+}
+
+function restartGame() {
+  board = initialBoard.map(r => [...r]);
+  turn = 'w';
+  selectedSq = null;
+  legalMoves = [];
+  lastMove = null;
+  moveHistory = [];
+  capturedByWhite = [];
+  capturedByBlack = [];
+  isGameOver = false;
+  document.getElementById('overlay').classList.remove('active');
+  document.getElementById('historyBox').innerText = "O'yin boshlandi.";
+  renderBoard();
+}
+
+// Bot Level toggle
+const btnBotLevel = document.getElementById('btnBotLevel');
+const botLevels = ["Oson", "O'rta", "Qiyin"];
+btnBotLevel.addEventListener('click', () => {
+  botDepth = (botDepth % 3) + 1;
+  btnBotLevel.innerText = 'Bot: ' + botLevels[botDepth - 1];
+});
+
+document.getElementById('btnRestart').addEventListener('click', restartGame);
+document.getElementById('modalBtn').addEventListener('click', restartGame);
+
+// Online Chess.com Link
+document.getElementById('btnChessCom').addEventListener('click', () => {
+  window.location.href = "https://www.chess.com/play";
+});
+
+// Spatial Gestures
+window.onArGesture = function(gesture) {
+  if (isGameOver) {
+    if (gesture === 'TAP' || gesture === 'PINCH') restartGame();
+  }
+};
+
+initBoardDOM();
+renderBoard();
+</script>
+</body>
+</html>

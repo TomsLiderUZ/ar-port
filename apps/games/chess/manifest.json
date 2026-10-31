@@ -17,7 +17,10 @@
   },
   "multiWindow": false,
   "permissions": ["audio"],
-  "allowedHosts": [],
+  "allowedHosts": [
+    "chess.com",
+    "*.chess.com"
+  ],
   "sessionGroup": "games",
   "minEngineVersion": "1.0",
   "order": 16

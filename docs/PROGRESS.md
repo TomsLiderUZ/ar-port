@@ -381,3 +381,27 @@ Ushbu hujjat har bir bosqich natijasini, qilingan ishlarni va ma'lum muammolarni
      - Flutter testlari (12 ta test) va Flutter tahlili (`flutter analyze` — 0 ogohlantirish) to'liq o'tdi.
      - Debug APK (`flutter build apk --debug`) muvaffaqiyatli yig'ildi (`build\app\outputs\flutter-apk\app-debug.apk`, 215.89 MB).
 
+---
+
+## QADAM 16 Batafsil Hisoboti
+- **Sana:** 2026-10-31
+- **Bajarildi:**
+  1. Oflayn 2D O'yinlar To'plami (HTML5 / Canvas / Web Audio / Liquid Glass):
+     - **Tetris (`apps/games/tetris/index.html`):** Klassik 10x20 katak, 7 ta neon tetramino (I, J, L, O, S, T, Z), Hold va Next bloklari oynasi, Level/Speed ortishi, chiziqlarni yo'qotish animatsiyasi, Web Audio sintezator effektlari va `localStorage` rekordi.
+     - **Dino Runner (`apps/games/dino/index.html`):** Vektorli T-Rex cheksiz yugurish, 16:9 keng format, kun/tun sikli (Day/Night transition), kaktuslar va balandliklari turlicha uchuvchi pterodaktillar, sakrash va egilish mexanikasi, masofa va eng yaxshi natija xotirasi.
+     - **Flappy Bird (`apps/games/flappy/index.html`):** 9:16 vertikal format, VisionOS neon uslubidagi yaltiroq qushcha, gravitatsiya va impuls fizikasi, silliq burilish dinamikasi, shisha quvurlar (glass pipes), medallar tizimi (Platina, Oltin, Kumush, Bronza).
+     - **Snake (`apps/games/snake/index.html`):** 20x20 katak, neon zumrad iloncha, devorli (Wall collision) va devorsiz (Wrap around borders) rejimlar, tezlik bosqichlari (Oson, O'rta, Tez), oddiy olma (10 ball) va vaqtinchalik oltin yulduz (50 ball) ovqatlari.
+     - **2048 (`apps/games/g2048/index.html`):** 4x4 katakli klassik sonlar boshqotirmasi, Apple glass uslubidagi rangli plitkalar, birlashish animatsiyasi, 1 marta orqaga qaytarish ("Undo") imkoniyati (TZ 9.3) va eng yuqori ball rekordi.
+     - **AR Shaxmat + Chess.com (`apps/games/chess/index.html`):** 8x8 qimmatbaho shisha shaxmat taxtasi, FIDE qoidalari bo'yicha yurishlar (piyoda ikki qadam, urib olish, vazirga aylanish, shoh va mot), Minimax va pozitsion baholashga ega ichki oflayn sun'iy intellekt boti (3 daraja: Oson, O'rta, Qiyin), yurishlar tarixi va urib olingan donalar paneli. Yuqori qismda "🌐 Chess.com (Onlayn)" tugmasi orqali to'g'ridan-to'g'ri `https://www.chess.com/play` ga ulanish.
+  2. Dvigatel va Imo-ishoralar Integratsiyasi:
+     - `GestureEngine.kt` ga 4 tomonlama svayp (`SWIPE_UP`, `SWIPE_DOWN`, `SWIPE_LEFT`, `SWIPE_RIGHT`) va `PINCH` gestlari qo'shildi.
+     - `ArEngineRenderer.kt` da o'yin oynalari faol bo'lganda svayplar o'yin ichki boshqaruviga yo'naltirilib, tizim oynalarini almashtirish bloklandi.
+     - `WebAppSurface.kt` ga `sendGameGesture(gestureType)` metodi qo'shildi — barcha o'yinlar `window.onArGesture` orqali to'g'ridan-to'g'ri fazoviy imo-ishoralarni (Tap, Pinch, Swipe) qabul qiladi.
+     - `SandboxPolicy.kt` da `file:///android_asset/` xavfsiz oflayn resurslar sifatida ruxsat etildi, boshqa tizimli `file://` manzillar bloklanishi saqlandi.
+     - `AppRegistry.kt` da `game2d` va `game` turlari avtomatik `WebAppSurface` ga ulandi.
+  3. Tekshiruv va sinovlar:
+     - JVM unit testlari (`GamesTest.kt` va avvalgi barcha testlar bo'yicha jami **69 ta test**) to'liq muvaffaqiyatli o'tdi (`BUILD SUCCESSFUL in 35s`).
+     - Flutter testlari (12 ta test) va Flutter tahlili (`flutter analyze` — 0 ogohlantirish) to'liq o'tdi.
+     - Debug APK (`flutter build apk --debug`) muvaffaqiyatli yig'ildi (`build\app\outputs\flutter-apk\app-debug.apk`, 215.90 MB, 46.9s).
+
+

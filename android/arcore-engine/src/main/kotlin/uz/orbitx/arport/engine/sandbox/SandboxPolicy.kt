@@ -97,8 +97,9 @@ object SandboxPolicy {
             return NavigationDecision.BLOCK
         }
 
-        // 2. Data and about:blank are allowed internally
-        if (scheme == "data" || scheme == "about" || scheme == "javascript") {
+        // 2. Data, about:blank, javascript, and offline android assets are allowed internally
+        if (scheme == "data" || scheme == "about" || scheme == "javascript" ||
+            (scheme == "file" && (trimmed.startsWith("file:///android_asset/") || trimmed.startsWith("file:///android_res/")))) {
             return NavigationDecision.ALLOW_IN_CURRENT_WINDOW
         }
 

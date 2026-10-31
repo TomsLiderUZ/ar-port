@@ -20,6 +20,9 @@ enum class GestureType {
     PALM_UP,
     SWIPE_LEFT,
     SWIPE_RIGHT,
+    SWIPE_UP,
+    SWIPE_DOWN,
+    PINCH,
     FIST
 }
 
@@ -95,6 +98,7 @@ class GestureEngine(
         var fistTriggered: Boolean = false
 
         var swipeStartX: Float = 0f
+        var swipeStartY: Float = 0f
         var swipeStartTimeMs: Long = 0L
 
         // Inertial scrolling
@@ -299,16 +303,24 @@ class GestureEngine(
                 state.fistTriggered = false
             }
 
-            // C. Swipe Detection (Horizontal fast wrist movement)
+            // C. Swipe Detection (Horizontal and vertical fast wrist movement)
             val wrist = hand.landmarks[TrackedHand.WRIST]
             if (state.swipeStartTimeMs == 0L) {
                 state.swipeStartX = wrist.x
+                state.swipeStartY = wrist.y
                 state.swipeStartTimeMs = currentTimestampMs
             } else {
                 val dt = currentTimestampMs - state.swipeStartTimeMs
                 val dx = wrist.x - state.swipeStartX
-                if (dt in 50L..SWIPE_MAX_DURATION_MS && abs(dx) > SWIPE_MIN_DISTANCE) {
-                    val swipeType = if (dx > 0) GestureType.SWIPE_RIGHT else GestureType.SWIPE_LEFT
+                val dy = wrist.y - state.swipeStartY
+                val absDx = abs(dx)
+                val absDy = abs(dy)
+                if (dt in 50L..SWIPE_MAX_DURATION_MS && (absDx > SWIPE_MIN_DISTANCE || absDy > SWIPE_MIN_DISTANCE)) {
+                    val swipeType = if (absDx > absDy) {
+                        if (dx > 0) GestureType.SWIPE_RIGHT else GestureType.SWIPE_LEFT
+                    } else {
+                        if (dy > 0) GestureType.SWIPE_DOWN else GestureType.SWIPE_UP
+                    }
                     listener?.onGestureEvent(
                         GestureEvent(
                             type = swipeType,
@@ -318,9 +330,11 @@ class GestureEngine(
                         )
                     )
                     state.swipeStartX = wrist.x
+                    state.swipeStartY = wrist.y
                     state.swipeStartTimeMs = currentTimestampMs
                 } else if (dt > SWIPE_MAX_DURATION_MS) {
                     state.swipeStartX = wrist.x
+                    state.swipeStartY = wrist.y
                     state.swipeStartTimeMs = currentTimestampMs
                 }
             }

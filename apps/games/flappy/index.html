@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>AR Flappy Bird</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+  body {
+    background: radial-gradient(circle at 50% 30%, #172033 0%, #0a0e17 100%);
+    color: #fff;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    overflow: hidden;
+  }
+  .glass-card {
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 20px;
+    box-shadow: 0 16px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.2);
+  }
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 90%;
+    max-width: 400px;
+    margin-bottom: 8px;
+    padding: 8px 16px;
+  }
+  .title { font-size: 18px; font-weight: 700; color: #ffd60a; text-shadow: 0 0 12px rgba(255,214,10,0.4); }
+  .best { font-size: 13px; color: #64d2ff; font-weight: 700; }
+  .game-wrapper {
+    position: relative;
+    width: 90%;
+    max-width: 400px;
+  }
+  canvas#canvas {
+    width: 100%;
+    height: auto;
+    background: #0f172a;
+    border: 1.5px solid rgba(255, 255, 255, 0.16);
+    border-radius: 20px;
+    box-shadow: 0 12px 28px rgba(0,0,0,0.6);
+    display: block;
+  }
+  .score-badge {
+    position: absolute;
+    top: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 6px 20px;
+    font-size: 26px;
+    font-weight: 900;
+    color: #fff;
+    pointer-events: none;
+    z-index: 5;
+  }
+  .controls {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+    width: 90%;
+    max-width: 400px;
+  }
+  .btn {
+    flex: 1;
+    padding: 14px;
+    font-size: 16px;
+    font-weight: 700;
+    color: #fff;
+    cursor: pointer;
+    text-align: center;
+    border-radius: 16px;
+    transition: all 0.15s ease;
+  }
+  .btn:active {
+    transform: scale(0.96);
+    background: rgba(255, 255, 255, 0.22);
+  }
+  .overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.75);
+    backdrop-filter: blur(14px);
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border-radius: 20px;
+    z-index: 10;
+  }
+  .overlay.active { display: flex; }
+  .modal-title { font-size: 28px; font-weight: 800; color: #ff453a; margin-bottom: 6px; }
+  .modal-card {
+    padding: 16px 28px;
+    text-align: center;
+    margin: 10px 0;
+  }
+  .modal-btn {
+    margin-top: 14px;
+    padding: 12px 32px;
+    font-size: 16px;
+    background: #ffd60a;
+    border-radius: 24px;
+    color: #000;
+    font-weight: 800;
+    cursor: pointer;
+  }
+</style>
+</head>
+<body>
+
+<header class="glass-card">
+  <div class="title">🐤 AR Flappy Bird</div>
+  <div class="best">REKORD: <span id="bestVal">0</span></div>
+</header>
+
+<div class="game-wrapper">
+  <div class="score-badge glass-card" id="scoreVal">0</div>
+  <canvas id="canvas" width="400" height="600"></canvas>
+  <div class="overlay" id="overlay">
+    <div class="modal-title" id="modalTitle">O'YIN TUGADI</div>
+    <div class="modal-card glass-card">
+      <div style="font-size: 13px; color: #8e8e93; font-weight: 600;">MEDAL</div>
+      <div style="font-size: 28px; margin: 4px 0;" id="medalIcon">🥉</div>
+      <div style="font-size: 18px; font-weight: 800; color: #ffd60a;" id="modalScore">Ball: 0</div>
+    </div>
+    <div class="modal-btn" id="modalBtn">Qayta uchish</div>
+  </div>
+</div>
+
+<div class="controls">
+  <div class="btn glass-card" id="btnFlap">🪽 UCHISH (TAP / PINCH)</div>
+  <div class="btn glass-card" id="btnPause" style="flex: 0.35;">⏸</div>
+</div>
+
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+
+let isGameOver = false, isPaused = false, hasStarted = false;
+let score = 0;
+let pipes = [];
+let nextPipeCounter = 0;
+
+const bestScore = parseInt(localStorage.getItem('ar_port_flappy_best') || '0');
+document.getElementById('bestVal').innerText = bestScore;
+
+// Audio Synth
+const AudioContext = window.AudioContext || window.webkitAudioContext;
+let audioCtx = null;
+function playSound(freq, duration = 0.08, type = 'sine') {
+  try {
+    if (!audioCtx) audioCtx = new AudioContext();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+    gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + duration);
+  } catch(e){}
+}
+
+const bird = {
+  x: 80,
+  y: 280,
+  radius: 16,
+  vy: 0,
+  gravity: 0.48,
+  flapStrength: -8.8,
+  rotation: 0,
+  wingAnim: 0,
+  flap() {
+    this.vy = this.flapStrength;
+    playSound(480, 0.07, 'triangle');
+    if (!hasStarted) hasStarted = true;
+  },
+  update() {
+    if (!hasStarted) {
+      this.y = 280 + Math.sin(Date.now() * 0.005) * 8;
+      this.rotation = 0;
+      return;
+    }
+    this.vy += this.gravity;
+    this.y += this.vy;
+    this.rotation = Math.min(Math.PI / 4, Math.max(-Math.PI / 5, this.vy * 0.08));
+    this.wingAnim += 0.25;
+
+    // Floor collision
+    if (this.y + this.radius >= canvas.height - 20) {
+      this.y = canvas.height - 20 - this.radius;
+      gameOver();
+    }
+    // Ceiling collision
+    if (this.y - this.radius <= 0) {
+      this.y = this.radius;
+      this.vy = 0;
+    }
+  },
+  draw() {
+    ctx.save();
+    ctx.translate(this.x, this.y);
+    ctx.rotate(this.rotation);
+
+    // Glowing body
+    ctx.fillStyle = '#ffd60a';
+    ctx.beginPath();
+    ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Belly highlight
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.arc(-2, -4, 5, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Eye
+    ctx.fillStyle = '#000';
+    ctx.beginPath();
+    ctx.arc(6, -4, 3, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Beak
+    ctx.fillStyle = '#ff9f0a';
+    ctx.beginPath();
+    ctx.moveTo(10, 0);
+    ctx.lineTo(22, 3);
+    ctx.lineTo(10, 8);
+    ctx.closePath();
+    ctx.fill();
+
+    // Wing
+    const wingY = Math.sin(this.wingAnim) * 5;
+    ctx.fillStyle = '#ffcc00';
+    ctx.beginPath();
+    ctx.ellipse(-6, 2 + wingY, 8, 5, Math.PI / 4, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
+  }
+};
+
+const PIPE_WIDTH = 58;
+const PIPE_GAP = 145;
+const PIPE_SPEED = 2.8;
+
+function spawnPipe() {
+  const minTop = 60;
+  const maxTop = canvas.height - PIPE_GAP - 100;
+  const topHeight = Math.floor(Math.random() * (maxTop - minTop)) + minTop;
+  pipes.push({
+    x: canvas.width + 10,
+    top: topHeight,
+    bottom: canvas.height - topHeight - PIPE_GAP,
+    passed: false
+  });
+}
+
+function update() {
+  if (isGameOver || isPaused) {
+    requestAnimationFrame(update);
+    return;
+  }
+
+  bird.update();
+
+  if (hasStarted) {
+    nextPipeCounter++;
+    if (nextPipeCounter >= 105) {
+      spawnPipe();
+      nextPipeCounter = 0;
+    }
+
+    for (let i = pipes.length - 1; i >= 0; i--) {
+      const p = pipes[i];
+      p.x -= PIPE_SPEED;
+
+      // Score count
+      if (!p.passed && p.x + PIPE_WIDTH < bird.x) {
+        p.passed = true;
+        score++;
+        document.getElementById('scoreVal').innerText = score;
+        playSound(840, 0.1, 'sine');
+      }
+
+      // Check collision
+      if (
+        bird.x + bird.radius > p.x &&
+        bird.x - bird.radius < p.x + PIPE_WIDTH &&
+        (bird.y - bird.radius < p.top || bird.y + bird.radius > canvas.height - p.bottom)
+      ) {
+        gameOver();
+        break;
+      }
+
+      if (p.x + PIPE_WIDTH < -20) {
+        pipes.splice(i, 1);
+      }
+    }
+  }
+
+  draw();
+  requestAnimationFrame(update);
+}
+
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Background gradient decor
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.03)';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // Draw pipes (Glass aesthetic)
+  pipes.forEach(p => {
+    // Top pipe
+    ctx.fillStyle = 'rgba(48, 209, 88, 0.85)';
+    ctx.fillRect(p.x, 0, PIPE_WIDTH, p.top);
+    // Top pipe cap
+    ctx.fillStyle = '#34c759';
+    ctx.fillRect(p.x - 4, p.top - 20, PIPE_WIDTH + 8, 20);
+
+    // Bottom pipe
+    const bottomY = canvas.height - p.bottom;
+    ctx.fillStyle = 'rgba(48, 209, 88, 0.85)';
+    ctx.fillRect(p.x, bottomY, PIPE_WIDTH, p.bottom);
+    // Bottom pipe cap
+    ctx.fillStyle = '#34c759';
+    ctx.fillRect(p.x - 4, bottomY, PIPE_WIDTH + 8, 20);
+
+    // Glass sheen lines
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+    ctx.fillRect(p.x + 6, 0, 4, p.top);
+    ctx.fillRect(p.x + 6, bottomY, 4, p.bottom);
+  });
+
+  // Floor
+  ctx.fillStyle = '#1e293b';
+  ctx.fillRect(0, canvas.height - 20, canvas.width, 20);
+  ctx.fillStyle = '#30d158';
+  ctx.fillRect(0, canvas.height - 20, canvas.width, 3);
+
+  // Bird
+  bird.draw();
+
+  // Tap to start hint
+  if (!hasStarted) {
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+    ctx.font = '600 16px -apple-system, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText("Boshlash uchun bosing (Tap / Pinch)", canvas.width / 2, 380);
+  }
+}
+
+function gameOver() {
+  isGameOver = true;
+  playSound(180, 0.35, 'sawtooth');
+  document.getElementById('modalTitle').innerText = "HALOKAT!";
+  document.getElementById('modalScore').innerText = "Jami Ball: " + score;
+
+  // Medals
+  let medal = "🥉";
+  if (score >= 100) medal = "💎 Platina";
+  else if (score >= 50) medal = "🥇 Oltin";
+  else if (score >= 25) medal = "🥈 Kumush";
+  else if (score >= 10) medal = "🥉 Bronza";
+  else medal = "⚪ Ishtirokchi";
+  document.getElementById('medalIcon').innerText = medal;
+
+  document.getElementById('overlay').classList.add('active');
+
+  const curBest = parseInt(localStorage.getItem('ar_port_flappy_best') || '0');
+  if (score > curBest) {
+    localStorage.setItem('ar_port_flappy_best', score);
+    document.getElementById('bestVal').innerText = score;
+  }
+}
+
+function restartGame() {
+  isGameOver = false;
+  isPaused = false;
+  hasStarted = false;
+  score = 0;
+  pipes = [];
+  nextPipeCounter = 0;
+  bird.y = 280;
+  bird.vy = 0;
+  document.getElementById('scoreVal').innerText = '0';
+  document.getElementById('overlay').classList.remove('active');
+}
+
+// Controls
+const btnFlap = document.getElementById('btnFlap');
+const btnPause = document.getElementById('btnPause');
+const modalBtn = document.getElementById('modalBtn');
+
+btnFlap.addEventListener('click', () => bird.flap());
+modalBtn.addEventListener('click', restartGame);
+
+btnPause.addEventListener('click', () => {
+  if (!hasStarted || isGameOver) return;
+  isPaused = !isPaused;
+  btnPause.innerText = isPaused ? '▶' : '⏸';
+  if (isPaused) {
+    document.getElementById('modalTitle').innerText = "PAUZA";
+    document.getElementById('modalScore').innerText = "Davom etish uchun bosing";
+    document.getElementById('overlay').classList.add('active');
+  } else {
+    document.getElementById('overlay').classList.remove('active');
+  }
+});
+
+// Canvas touch
+canvas.addEventListener('touchstart', (e) => {
+  e.preventDefault();
+  bird.flap();
+});
+canvas.addEventListener('mousedown', () => bird.flap());
+
+// Spatial Gesture
+window.onArGesture = function(gesture) {
+  if (isGameOver) {
+    if (gesture === 'TAP' || gesture === 'PINCH') restartGame();
+    return;
+  }
+  switch(gesture) {
+    case 'TAP':
+    case 'PINCH':
+    case 'SWIPE_UP':
+      bird.flap();
+      break;
+  }
+};
+
+// Keyboard
+window.addEventListener('keydown', (e) => {
+  if (e.code === 'Space' || e.code === 'ArrowUp') bird.flap();
+});
+
+// Start loop
+update();
+</script>
+</body>
+</html>

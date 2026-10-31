@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "generated_at": "2026-10-31T13:03:14.715374Z",
+  "generated_at": "2026-10-31T14:04:56.323881Z",
   "apps_count": 18,
   "apps": [
     {
@@ -439,7 +439,10 @@
       "permissions": [
         "audio"
       ],
-      "allowedHosts": [],
+      "allowedHosts": [
+        "chess.com",
+        "*.chess.com"
+      ],
       "sessionGroup": "games",
       "minEngineVersion": "1.0",
       "order": 16
