@@ -55,6 +55,8 @@ android {
 
 dependencies {
     implementation(project(":arcore-engine"))
+    implementation("androidx.appcompat:appcompat:1.7.0")
+    implementation("androidx.fragment:fragment-ktx:1.8.5")
 }
 
 kotlin {

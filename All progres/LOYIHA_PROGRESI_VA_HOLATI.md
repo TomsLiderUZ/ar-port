@@ -56,11 +56,15 @@
 ## 3. Yakuniy Chiqarilish Fayli (dist/ar-port.apk)
 
 * **Fayl:** [`dist/ar-port.apk`](file:///C:/ItzToms%20(all%20files)/ALL%20CODES/Demo%20Productions/ar-port/dist/ar-port.apk)
-* **Hajmi:** **78.49 MB** (`82,305,285` bayt)
-* **SHA-256:** `ED45E0E8FA0A61F2E71F97D3DF0F7739E4DCA4626C7FFD7FADDD88FBD2A87DE3`
+* **Hajmi:** **79.05 MB** (`82,886,363` bayt)
+* **SHA-256:** `56B130096968E482344AC9B6CAB09B26723F744D379B776AF6DCAD780AB36A8A`
 * **Arxitekturalar:** `arm64-v8a`, `armeabi-v7a`, `x86_64`
 * **Optimizatsiya:** ProGuard / R8 code shrinking va resource shrinking
 * **Imzo:** Release Keystore (`docs/SIGNING.md`)
+* **Tuzatish (Hotfix):**
+  - `ArTheme` mavzusi `Theme.AppCompat.NoActionBar` ga ulandi (AppCompatDelegate talabi qondirildi).
+  - `ArActivity` klassi `FragmentActivity` ga o'tkazildi va `super.onCreate` hamda `onResume/onPause/onDestroy` to'liq himoyalovchi `try-catch` bloklari bilan o'raldi.
+  - ProGuard R8 qoidalariga AppCompat va FragmentActivity qoidalari qo'shildi.
 
 ---
 

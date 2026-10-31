@@ -23,7 +23,8 @@ import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.SeekBar
 import android.widget.TextView
-import androidx.appcompat.app.AppCompatActivity
+import android.widget.Toast
+import androidx.fragment.app.FragmentActivity
 import uz.orbitx.arport.engine.camera.PassthroughCameraManager
 import uz.orbitx.arport.engine.render.ArEngineRenderer
 import uz.orbitx.arport.engine.stereo.LensProfile
@@ -33,7 +34,7 @@ import uz.orbitx.arport.engine.tracking.TrackingManager
  * Native Activity hosting the OpenGL ES 3.0 rendering cycle, CameraX passthrough,
  * 3DoF/6DoF spatial motion tracking, and Stereoscopic dual-viewport with Cardboard lens distortion.
  */
-class ArActivity : AppCompatActivity() {
+class ArActivity : FragmentActivity() {
 
     companion object {
         const val EXTRA_VIEW_MODE = "EXTRA_VIEW_MODE"
@@ -97,277 +98,287 @@ class ArActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Read launch arguments
-        intent?.let {
-            viewMode = it.getStringExtra(EXTRA_VIEW_MODE) ?: "stereo"
-            cameraId = it.getStringExtra(EXTRA_CAMERA_ID) ?: "0"
-            resolution = it.getStringExtra(EXTRA_RESOLUTION) ?: "1080p"
-            targetFps = it.getIntExtra(EXTRA_TARGET_FPS, 60)
-            ipdMm = it.getDoubleExtra(EXTRA_IPD_MM, 63.0)
-            lensProfile = it.getStringExtra(EXTRA_LENS_PROFILE) ?: "cardboard_v2"
-        }
-
-        // Fullscreen and Keep Screen On
-        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        enableImmersiveMode()
-
-        rootLayout = FrameLayout(this).apply {
-            setBackgroundColor(Color.BLACK)
-        }
-
-        // 1. Initialize Motion Tracking Manager
-        val tm = TrackingManager(this)
-        trackingManager = tm
-
-        // 2. OpenGL ES 3.0 Surface View
-        glSurfaceView = GLSurfaceView(this).apply {
-            setEGLContextClientVersion(3)
-            preserveEGLContextOnPause = true
-            setOnTouchListener { view, event ->
-                handleScreenTouch(event, view.width, view.height)
-                true
+        try {
+            // Read launch arguments
+            intent?.let {
+                viewMode = it.getStringExtra(EXTRA_VIEW_MODE) ?: "stereo"
+                cameraId = it.getStringExtra(EXTRA_CAMERA_ID) ?: "0"
+                resolution = it.getStringExtra(EXTRA_RESOLUTION) ?: "1080p"
+                targetFps = it.getIntExtra(EXTRA_TARGET_FPS, 60)
+                ipdMm = it.getDoubleExtra(EXTRA_IPD_MM, 63.0)
+                lensProfile = it.getStringExtra(EXTRA_LENS_PROFILE) ?: "cardboard_v2"
             }
-        }
 
-        arRenderer = ArEngineRenderer(
-            context = this,
-            viewMode = viewMode,
-            trackingManager = tm,
-            ipdMm = ipdMm,
-            lensProfileId = lensProfile,
-            onSurfaceTextureReady = { surfaceTexture ->
-                runOnUiThread {
-                    startCameraStream(surfaceTexture)
+            // Fullscreen and Keep Screen On
+            window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+            enableImmersiveMode()
+
+            rootLayout = FrameLayout(this).apply {
+                setBackgroundColor(Color.BLACK)
+            }
+
+            // 1. Initialize Motion Tracking Manager
+            val tm = TrackingManager(this)
+            trackingManager = tm
+
+            // 2. OpenGL ES 3.0 Surface View
+            glSurfaceView = GLSurfaceView(this).apply {
+                setEGLContextClientVersion(3)
+                preserveEGLContextOnPause = true
+                setOnTouchListener { view, event ->
+                    handleScreenTouch(event, view.width, view.height)
+                    true
                 }
-            },
-            requestRender = {
-                glSurfaceView.requestRender()
             }
-        )
 
-        arRenderer?.onHomeDockRequested = {
-            runOnUiThread {
-                android.widget.Toast.makeText(this, "🏠 Home Dock ochildi (Kaft ochiq gesti)", android.widget.Toast.LENGTH_SHORT).show()
+            arRenderer = ArEngineRenderer(
+                context = this,
+                viewMode = viewMode,
+                trackingManager = tm,
+                ipdMm = ipdMm,
+                lensProfileId = lensProfile,
+                onSurfaceTextureReady = { surfaceTexture ->
+                    runOnUiThread {
+                        startCameraStream(surfaceTexture)
+                    }
+                },
+                requestRender = {
+                    glSurfaceView.requestRender()
+                }
+            )
+
+            arRenderer?.onHomeDockRequested = {
+                runOnUiThread {
+                    Toast.makeText(this, "🏠 Home Dock ochildi (Kaft ochiq gesti)", Toast.LENGTH_SHORT).show()
+                }
             }
+
+            arRenderer?.onExitRequested = {
+                runOnUiThread {
+                    showExitConfirmDialog()
+                }
+            }
+
+            arRenderer?.onVolumeToggleRequested = {
+                runOnUiThread {
+                    Toast.makeText(this, "🔊 Ovoz boshqaruvi", Toast.LENGTH_SHORT).show()
+                }
+            }
+
+            arRenderer?.onBrightnessToggleRequested = {
+                runOnUiThread {
+                    Toast.makeText(this, "☀️ Yorug'lik boshqaruvi", Toast.LENGTH_SHORT).show()
+                }
+            }
+
+            arRenderer?.onPerformanceWarning = { warning ->
+                runOnUiThread {
+                    Toast.makeText(this, warning, Toast.LENGTH_LONG).show()
+                }
+            }
+
+            // Initialize Hardware Thermal & Headroom Monitor
+            val tmMonitor = uz.orbitx.arport.engine.render.ThermalMonitor(this)
+            thermalMonitor = tmMonitor
+            tmMonitor.onThermalStatusChanged = { status, _ ->
+                arRenderer?.adaptiveQualityController?.onThermalStatusChanged(status)
+            }
+            tmMonitor.onThermalWarning = { warning ->
+                runOnUiThread {
+                    Toast.makeText(this, warning, Toast.LENGTH_LONG).show()
+                }
+            }
+
+            val ht = uz.orbitx.arport.engine.hand.HandTracker(this)
+            handTracker = ht
+            arRenderer?.handTracker = ht
+
+            glSurfaceView.setRenderer(arRenderer)
+            glSurfaceView.renderMode = GLSurfaceView.RENDERMODE_CONTINUOUSLY
+
+            rootLayout.addView(
+                glSurfaceView,
+                FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT)
+            )
+
+            // 3. Liquid Glass Dual Debug HUD (Left Eye & Right Eye)
+            leftHudTextView = createHudTextView()
+            val leftHudParams = FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.WRAP_CONTENT,
+                FrameLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                gravity = Gravity.TOP or Gravity.START
+                setMargins(32, 32, 0, 0)
+            }
+            rootLayout.addView(leftHudTextView, leftHudParams)
+
+            rightHudTextView = createHudTextView()
+            val rightHudParams = FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.WRAP_CONTENT,
+                FrameLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
+                setMargins(32, 32, 0, 0)
+            }
+            rootLayout.addView(rightHudTextView, rightHudParams)
+            updateHudVisibility()
+
+            // 4. Action Controls Bar (Top-Right)
+            val actionRow = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+            }
+
+            // Mode Toggle Button (Stereo <-> Oddiy)
+            modeToggleButton = TextView(this).apply {
+                text = if (viewMode == "stereo") "👓 Stereo" else "📱 Oddiy"
+                textSize = 12f
+                setTextColor(Color.WHITE)
+                setPadding(24, 14, 24, 14)
+                background = createGlassBackground()
+                setOnClickListener {
+                    performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                    toggleViewMode()
+                }
+            }
+            actionRow.addView(
+                modeToggleButton,
+                LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+                    setMargins(0, 0, 16, 0)
+                }
+            )
+
+            // Add Window Button (+ Oyna)
+            val addWindowButton = TextView(this).apply {
+                text = "+ Oyna"
+                textSize = 12f
+                setTextColor(Color.WHITE)
+                setPadding(24, 14, 24, 14)
+                background = createGlassBackground()
+                setOnClickListener {
+                    performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                    addNewDemoWindow()
+                }
+            }
+            actionRow.addView(
+                addWindowButton,
+                LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+                    setMargins(0, 0, 16, 0)
+                }
+            )
+
+            // Keyboard Button (Fazoviy Klaviatura)
+            val keyboardButton = TextView(this).apply {
+                text = "⌨️ Klaviatura"
+                textSize = 12f
+                setTextColor(Color.WHITE)
+                setPadding(24, 14, 24, 14)
+                background = createGlassBackground()
+                setOnClickListener {
+                    performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                    arRenderer?.toggleSpatialKeyboard()
+                }
+            }
+            actionRow.addView(
+                keyboardButton,
+                LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+                    setMargins(0, 0, 16, 0)
+                }
+            )
+
+            // Home Button (Bosh Ekran)
+            val homeButton = TextView(this).apply {
+                text = "🏠 Home"
+                textSize = 12f
+                setTextColor(Color.WHITE)
+                setPadding(24, 14, 24, 14)
+                background = createGlassBackground()
+                setOnClickListener {
+                    performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                    arRenderer?.toggleHomePanel()
+                }
+            }
+            actionRow.addView(
+                homeButton,
+                LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+                    setMargins(0, 0, 16, 0)
+                }
+            )
+
+            // Calibration Button (Linza va IPD)
+            val calibrationButton = TextView(this).apply {
+                text = "⚙️ Kalibratsiya"
+                textSize = 12f
+                setTextColor(Color.WHITE)
+                setPadding(24, 14, 24, 14)
+                background = createGlassBackground()
+                setOnClickListener {
+                    performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                    showCalibrationDialog()
+                }
+            }
+            actionRow.addView(
+                calibrationButton,
+                LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+                    setMargins(0, 0, 16, 0)
+                }
+            )
+
+            // Recenter (Markazlashtirish) Button
+            val recenterButton = TextView(this).apply {
+                text = "🎯 Markazlashtirish"
+                textSize = 12f
+                setTextColor(Color.WHITE)
+                setPadding(24, 14, 24, 14)
+                background = createGlassBackground()
+                setOnClickListener {
+                    performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                    arRenderer?.recenter()
+                }
+            }
+            actionRow.addView(
+                recenterButton,
+                LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+                    setMargins(0, 0, 16, 0)
+                }
+            )
+
+            // Fallback Close Button
+            val closeButton = TextView(this).apply {
+                text = "✕"
+                textSize = 16f
+                setTextColor(Color.WHITE)
+                gravity = Gravity.CENTER
+                background = GradientDrawable().apply {
+                    setColor(Color.parseColor("#991C1C1E"))
+                    cornerRadius = 40f
+                    setStroke(1, Color.parseColor("#44FFFFFF"))
+                }
+                setOnClickListener { finish() }
+            }
+            actionRow.addView(closeButton, LinearLayout.LayoutParams(72, 72))
+
+            val actionParams = FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.WRAP_CONTENT,
+                FrameLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                gravity = Gravity.TOP or Gravity.END
+                setMargins(0, 32, 32, 0)
+            }
+            rootLayout.addView(actionRow, actionParams)
+
+            setContentView(rootLayout)
+
+            startHudUpdater()
+        } catch (e: Throwable) {
+            android.util.Log.e("ArActivity", "AR Activity ishga tushirishda kutilmagan xatolik yuz berdi", e)
+            Toast.makeText(
+                this,
+                "AR ishga tushirilmadi: ${e.localizedMessage ?: e.javaClass.simpleName}",
+                Toast.LENGTH_LONG
+            ).show()
+            finish()
         }
-
-        arRenderer?.onExitRequested = {
-            runOnUiThread {
-                showExitConfirmDialog()
-            }
-        }
-
-        arRenderer?.onVolumeToggleRequested = {
-            runOnUiThread {
-                android.widget.Toast.makeText(this, "🔊 Ovoz boshqaruvi", android.widget.Toast.LENGTH_SHORT).show()
-            }
-        }
-
-        arRenderer?.onBrightnessToggleRequested = {
-            runOnUiThread {
-                android.widget.Toast.makeText(this, "☀️ Yorug'lik boshqaruvi", android.widget.Toast.LENGTH_SHORT).show()
-            }
-        }
-
-        arRenderer?.onPerformanceWarning = { warning ->
-            runOnUiThread {
-                android.widget.Toast.makeText(this, warning, android.widget.Toast.LENGTH_LONG).show()
-            }
-        }
-
-        // Initialize Hardware Thermal & Headroom Monitor
-        val tmMonitor = uz.orbitx.arport.engine.render.ThermalMonitor(this)
-        thermalMonitor = tmMonitor
-        tmMonitor.onThermalStatusChanged = { status, _ ->
-            arRenderer?.adaptiveQualityController?.onThermalStatusChanged(status)
-        }
-        tmMonitor.onThermalWarning = { warning ->
-            runOnUiThread {
-                android.widget.Toast.makeText(this, warning, android.widget.Toast.LENGTH_LONG).show()
-            }
-        }
-
-        val ht = uz.orbitx.arport.engine.hand.HandTracker(this)
-        handTracker = ht
-        arRenderer?.handTracker = ht
-
-        glSurfaceView.setRenderer(arRenderer)
-        glSurfaceView.renderMode = GLSurfaceView.RENDERMODE_CONTINUOUSLY
-
-        rootLayout.addView(
-            glSurfaceView,
-            FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT)
-        )
-
-        // 3. Liquid Glass Dual Debug HUD (Left Eye & Right Eye)
-        leftHudTextView = createHudTextView()
-        val leftHudParams = FrameLayout.LayoutParams(
-            FrameLayout.LayoutParams.WRAP_CONTENT,
-            FrameLayout.LayoutParams.WRAP_CONTENT
-        ).apply {
-            gravity = Gravity.TOP or Gravity.START
-            setMargins(32, 32, 0, 0)
-        }
-        rootLayout.addView(leftHudTextView, leftHudParams)
-
-        rightHudTextView = createHudTextView()
-        val rightHudParams = FrameLayout.LayoutParams(
-            FrameLayout.LayoutParams.WRAP_CONTENT,
-            FrameLayout.LayoutParams.WRAP_CONTENT
-        ).apply {
-            gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
-            setMargins(32, 32, 0, 0)
-        }
-        rootLayout.addView(rightHudTextView, rightHudParams)
-        updateHudVisibility()
-
-        // 4. Action Controls Bar (Top-Right)
-        val actionRow = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-        }
-
-        // Mode Toggle Button (Stereo <-> Oddiy)
-        modeToggleButton = TextView(this).apply {
-            text = if (viewMode == "stereo") "👓 Stereo" else "📱 Oddiy"
-            textSize = 12f
-            setTextColor(Color.WHITE)
-            setPadding(24, 14, 24, 14)
-            background = createGlassBackground()
-            setOnClickListener {
-                performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
-                toggleViewMode()
-            }
-        }
-        actionRow.addView(
-            modeToggleButton,
-            LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
-                setMargins(0, 0, 16, 0)
-            }
-        )
-
-        // Add Window Button (+ Oyna)
-        val addWindowButton = TextView(this).apply {
-            text = "+ Oyna"
-            textSize = 12f
-            setTextColor(Color.WHITE)
-            setPadding(24, 14, 24, 14)
-            background = createGlassBackground()
-            setOnClickListener {
-                performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
-                addNewDemoWindow()
-            }
-        }
-        actionRow.addView(
-            addWindowButton,
-            LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
-                setMargins(0, 0, 16, 0)
-            }
-        )
-
-        // Keyboard Button (Fazoviy Klaviatura)
-        val keyboardButton = TextView(this).apply {
-            text = "⌨️ Klaviatura"
-            textSize = 12f
-            setTextColor(Color.WHITE)
-            setPadding(24, 14, 24, 14)
-            background = createGlassBackground()
-            setOnClickListener {
-                performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
-                arRenderer?.toggleSpatialKeyboard()
-            }
-        }
-        actionRow.addView(
-            keyboardButton,
-            LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
-                setMargins(0, 0, 16, 0)
-            }
-        )
-
-        // Home Button (Bosh Ekran)
-        val homeButton = TextView(this).apply {
-            text = "🏠 Home"
-            textSize = 12f
-            setTextColor(Color.WHITE)
-            setPadding(24, 14, 24, 14)
-            background = createGlassBackground()
-            setOnClickListener {
-                performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
-                arRenderer?.toggleHomePanel()
-            }
-        }
-        actionRow.addView(
-            homeButton,
-            LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
-                setMargins(0, 0, 16, 0)
-            }
-        )
-
-        // Calibration Button (Linza va IPD)
-        val calibrationButton = TextView(this).apply {
-            text = "⚙️ Kalibratsiya"
-            textSize = 12f
-            setTextColor(Color.WHITE)
-            setPadding(24, 14, 24, 14)
-            background = createGlassBackground()
-            setOnClickListener {
-                performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
-                showCalibrationDialog()
-            }
-        }
-        actionRow.addView(
-            calibrationButton,
-            LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
-                setMargins(0, 0, 16, 0)
-            }
-        )
-
-        // Recenter (Markazlashtirish) Button
-        val recenterButton = TextView(this).apply {
-            text = "🎯 Markazlashtirish"
-            textSize = 12f
-            setTextColor(Color.WHITE)
-            setPadding(24, 14, 24, 14)
-            background = createGlassBackground()
-            setOnClickListener {
-                performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
-                arRenderer?.recenter()
-            }
-        }
-        actionRow.addView(
-            recenterButton,
-            LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
-                setMargins(0, 0, 16, 0)
-            }
-        )
-
-        // Fallback Close Button
-        val closeButton = TextView(this).apply {
-            text = "✕"
-            textSize = 16f
-            setTextColor(Color.WHITE)
-            gravity = Gravity.CENTER
-            background = GradientDrawable().apply {
-                setColor(Color.parseColor("#991C1C1E"))
-                cornerRadius = 40f
-                setStroke(1, Color.parseColor("#44FFFFFF"))
-            }
-            setOnClickListener { finish() }
-        }
-        actionRow.addView(closeButton, LinearLayout.LayoutParams(72, 72))
-
-        val actionParams = FrameLayout.LayoutParams(
-            FrameLayout.LayoutParams.WRAP_CONTENT,
-            FrameLayout.LayoutParams.WRAP_CONTENT
-        ).apply {
-            gravity = Gravity.TOP or Gravity.END
-            setMargins(0, 32, 32, 0)
-        }
-        rootLayout.addView(actionRow, actionParams)
-
-        setContentView(rootLayout)
-
-        startHudUpdater()
     }
 
     private fun createHudTextView(): TextView {
@@ -570,30 +581,34 @@ class ArActivity : AppCompatActivity() {
     }
 
     private fun startCameraStream(surfaceTexture: android.graphics.SurfaceTexture) {
-        val cm = PassthroughCameraManager(
-            context = this,
-            lifecycleOwner = this,
-            cameraId = cameraId,
-            resolution = resolution,
-            targetFps = targetFps,
-            onPreviewSizeKnown = { width, height ->
-                arRenderer?.setCameraPreviewSize(width, height)
+        try {
+            val cm = PassthroughCameraManager(
+                context = this,
+                lifecycleOwner = this,
+                cameraId = cameraId,
+                resolution = resolution,
+                targetFps = targetFps,
+                onPreviewSizeKnown = { width, height ->
+                    arRenderer?.setCameraPreviewSize(width, height)
+                }
+            )
+
+            // Setup ImageAnalysis for 30 FPS hand landmark tracking (TZ 6.1)
+            val imageAnalysis = androidx.camera.core.ImageAnalysis.Builder()
+                .setTargetResolution(android.util.Size(640, 480))
+                .setBackpressureStrategy(androidx.camera.core.ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                .build()
+
+            handTracker?.let { tracker ->
+                imageAnalysis.setAnalyzer(androidx.core.content.ContextCompat.getMainExecutor(this), tracker)
             }
-        )
+            cm.imageAnalysis = imageAnalysis
 
-        // Setup ImageAnalysis for 30 FPS hand landmark tracking (TZ 6.1)
-        val imageAnalysis = androidx.camera.core.ImageAnalysis.Builder()
-            .setTargetResolution(android.util.Size(640, 480))
-            .setBackpressureStrategy(androidx.camera.core.ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-            .build()
-
-        handTracker?.let { tracker ->
-            imageAnalysis.setAnalyzer(androidx.core.content.ContextCompat.getMainExecutor(this), tracker)
+            cameraManager = cm
+            cm.startCamera(surfaceTexture)
+        } catch (e: Throwable) {
+            android.util.Log.e("ArActivity", "Kamera oqimini ishga tushirishda xatolik: ${e.message}", e)
         }
-        cm.imageAnalysis = imageAnalysis
-
-        cameraManager = cm
-        cm.startCamera(surfaceTexture)
     }
 
     private fun startHudUpdater() {
@@ -645,15 +660,27 @@ class ArActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        enableImmersiveMode()
-        trackingManager?.start()
-        glSurfaceView.onResume()
+        try {
+            enableImmersiveMode()
+            trackingManager?.start()
+            if (::glSurfaceView.isInitialized) {
+                glSurfaceView.onResume()
+            }
+        } catch (e: Throwable) {
+            android.util.Log.e("ArActivity", "onResume xatolik", e)
+        }
     }
 
     override fun onPause() {
         super.onPause()
-        trackingManager?.stop()
-        glSurfaceView.onPause()
+        try {
+            trackingManager?.stop()
+            if (::glSurfaceView.isInitialized) {
+                glSurfaceView.onPause()
+            }
+        } catch (e: Throwable) {
+            android.util.Log.e("ArActivity", "onPause xatolik", e)
+        }
     }
 
     private var demoWindowCounter = 4
@@ -881,10 +908,14 @@ class ArActivity : AppCompatActivity() {
         super.onDestroy()
         isHudActive = false
         mainHandler.removeCallbacksAndMessages(null)
-        trackingManager?.stop()
-        handTracker?.release()
-        thermalMonitor?.release()
-        cameraManager?.stopCamera()
-        arRenderer?.release()
+        try {
+            trackingManager?.stop()
+            handTracker?.release()
+            thermalMonitor?.release()
+            cameraManager?.stopCamera()
+            arRenderer?.release()
+        } catch (e: Throwable) {
+            android.util.Log.e("ArActivity", "onDestroy tozalash xatolik", e)
+        }
     }
 }

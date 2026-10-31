@@ -7,9 +7,11 @@
     <style name="NormalTheme" parent="@android:style/Theme.Black.NoTitleBar">
         <item name="android:windowBackground">?android:colorBackground</item>
     </style>
-    <style name="ArTheme" parent="@android:style/Theme.NoTitleBar.Fullscreen">
+    <style name="ArTheme" parent="Theme.AppCompat.NoActionBar">
         <item name="android:windowBackground">#000000</item>
         <item name="android:windowFullscreen">true</item>
         <item name="android:keepScreenOn">true</item>
+        <item name="windowNoTitle">true</item>
+        <item name="windowActionBar">false</item>
     </style>
 </resources>

@@ -13,6 +13,12 @@
 -keep class uz.orbitx.arport.** { *; }
 -keepclassmembers class uz.orbitx.arport.** { *; }
 
+# AndroidX AppCompat & Fragment
+-keep class androidx.appcompat.** { *; }
+-dontwarn androidx.appcompat.**
+-keep class androidx.fragment.app.** { *; }
+-dontwarn androidx.fragment.app.**
+
 # Google ARCore & MediaPipe
 -keep class com.google.ar.core.** { *; }
 -dontwarn com.google.ar.core.**
