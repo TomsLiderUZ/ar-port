@@ -13,6 +13,7 @@ import android.os.Handler
 import android.os.Looper
 import android.view.Gravity
 import android.view.HapticFeedbackConstants
+import android.view.MotionEvent
 import android.view.View
 import android.view.Window
 import android.view.WindowInsets
@@ -122,10 +123,8 @@ class ArActivity : AppCompatActivity() {
             setEGLContextClientVersion(3)
             preserveEGLContextOnPause = true
             setOnTouchListener { view, event ->
-                if (event.action == android.view.MotionEvent.ACTION_DOWN) {
-                    handleScreenTouch(event.x, event.y, view.width, view.height)
-                }
-                false
+                handleScreenTouch(event, view.width, view.height)
+                true
             }
         }
 
@@ -143,6 +142,12 @@ class ArActivity : AppCompatActivity() {
                 glSurfaceView.requestRender()
             }
         )
+
+        arRenderer?.onHomeDockRequested = {
+            runOnUiThread {
+                android.widget.Toast.makeText(this, "🏠 Home Dock ochildi (Kaft ochiq gesti)", android.widget.Toast.LENGTH_SHORT).show()
+            }
+        }
 
         val ht = uz.orbitx.arport.engine.hand.HandTracker(this)
         handTracker = ht
@@ -217,6 +222,25 @@ class ArActivity : AppCompatActivity() {
         }
         actionRow.addView(
             addWindowButton,
+            LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+                setMargins(0, 0, 16, 0)
+            }
+        )
+
+        // Keyboard Button (Fazoviy Klaviatura)
+        val keyboardButton = TextView(this).apply {
+            text = "⌨️ Klaviatura"
+            textSize = 12f
+            setTextColor(Color.WHITE)
+            setPadding(24, 14, 24, 14)
+            background = createGlassBackground()
+            setOnClickListener {
+                performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                arRenderer?.toggleSpatialKeyboard()
+            }
+        }
+        actionRow.addView(
+            keyboardButton,
             LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
                 setMargins(0, 0, 16, 0)
             }
@@ -527,10 +551,11 @@ class ArActivity : AppCompatActivity() {
                 val handFps = handTracker?.fpsTracker?.getFps() ?: 0f
                 val handCount = handTracker?.getVisibleHands()?.size ?: 0
                 val handStatus = if (handCount > 0) "$handCount qo'l (${handFps.toInt()} FPS)" else "Qo'l yo'q"
+                val gestureStatus = arRenderer?.lastGestureLabel ?: "Kutilmoqda"
 
                 val hudText = String.format(
-                    "AR Port • %s | %s\nFPS: %.1f | Kechikish: %.1f ms | Qo'l: %s",
-                    modeLabel, trackingLabel, fps, latency, handStatus
+                    "AR Port • %s | %s\nFPS: %.1f | Kechikish: %.1f ms | Qo'l: %s | Gest: %s",
+                    modeLabel, trackingLabel, fps, latency, handStatus, gestureStatus
                 )
                 leftHudTextView.text = hudText
                 if (viewMode == "stereo") {
@@ -617,7 +642,11 @@ class ArActivity : AppCompatActivity() {
         }
     }
 
-    private fun handleScreenTouch(touchX: Float, touchY: Float, width: Int, height: Int) {
+    private var touchDraggedWindow: uz.orbitx.arport.engine.window.SpatialWindow? = null
+    private var lastTouchX: Float = 0f
+    private var lastTouchY: Float = 0f
+
+    private fun handleScreenTouch(event: MotionEvent, width: Int, height: Int) {
         if (width <= 0 || height <= 0) return
         val renderer = arRenderer ?: return
 
@@ -626,36 +655,68 @@ class ArActivity : AppCompatActivity() {
         val aspect = width.toFloat() / height.toFloat()
         val tanHalfFovX = tanHalfFovY * aspect
 
-        val ndcX = (2f * touchX / width) - 1.0f
-        val ndcY = 1.0f - (2f * touchY / height)
+        val ndcX = (2f * event.x / width) - 1.0f
+        val ndcY = 1.0f - (2f * event.y / height)
 
         val rayDirX = ndcX * tanHalfFovX
         val rayDirY = ndcY * tanHalfFovY
         val rayDirZ = -1.0f
 
-        val hitPair = renderer.windowManager.raycast(0f, 0f, 0f, rayDirX, rayDirY, rayDirZ)
-        if (hitPair != null) {
-            val (hitWin, hitResult) = hitPair
-            glSurfaceView.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+        when (event.action) {
+            MotionEvent.ACTION_DOWN -> {
+                lastTouchX = event.x
+                lastTouchY = event.y
+                touchDraggedWindow = null
 
-            when (hitResult.component) {
-                uz.orbitx.arport.engine.window.SpatialWindow.WindowComponent.CLOSE_BUTTON -> {
-                    renderer.windowManager.closeWindow(hitWin.id)
-                }
-                uz.orbitx.arport.engine.window.SpatialWindow.WindowComponent.MINIMIZE_BUTTON -> {
-                    renderer.windowManager.minimizeWindow(hitWin.id)
-                }
-                uz.orbitx.arport.engine.window.SpatialWindow.WindowComponent.RESIZE_HANDLE -> {
-                    val nextAspect = if (hitWin.aspect == uz.orbitx.arport.engine.window.WindowAspect.LOCKED_16_9) {
-                        uz.orbitx.arport.engine.window.WindowAspect.LOCKED_9_16
-                    } else {
-                        uz.orbitx.arport.engine.window.WindowAspect.LOCKED_16_9
+                val hitPair = renderer.windowManager.raycast(0f, 0f, 0f, rayDirX, rayDirY, rayDirZ)
+                if (hitPair != null) {
+                    val (hitWin, hitResult) = hitPair
+                    glSurfaceView.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+
+                    // 1. Keyboard Tap
+                    if (hitWin.appId == "spatial_keyboard") {
+                        renderer.spatialKeyboard.onKeyHit(hitResult.u, hitResult.v)
+                        return
                     }
-                    hitWin.updateAspect(nextAspect)
+
+                    when (hitResult.component) {
+                        uz.orbitx.arport.engine.window.SpatialWindow.WindowComponent.CLOSE_BUTTON -> {
+                            renderer.windowManager.closeWindow(hitWin.id)
+                        }
+                        uz.orbitx.arport.engine.window.SpatialWindow.WindowComponent.MINIMIZE_BUTTON -> {
+                            renderer.windowManager.minimizeWindow(hitWin.id)
+                        }
+                        uz.orbitx.arport.engine.window.SpatialWindow.WindowComponent.RESIZE_HANDLE -> {
+                            val nextAspect = if (hitWin.aspect == uz.orbitx.arport.engine.window.WindowAspect.LOCKED_16_9) {
+                                uz.orbitx.arport.engine.window.WindowAspect.LOCKED_9_16
+                            } else {
+                                uz.orbitx.arport.engine.window.WindowAspect.LOCKED_16_9
+                            }
+                            hitWin.updateAspect(nextAspect)
+                        }
+                        uz.orbitx.arport.engine.window.SpatialWindow.WindowComponent.HEADER_TITLE,
+                        uz.orbitx.arport.engine.window.SpatialWindow.WindowComponent.BOTTOM_DRAG_HANDLE -> {
+                            renderer.windowManager.setFocus(hitWin.id)
+                            touchDraggedWindow = hitWin
+                        }
+                        else -> {
+                            renderer.windowManager.setFocus(hitWin.id)
+                        }
+                    }
                 }
-                else -> {
-                    renderer.windowManager.setFocus(hitWin.id)
+            }
+            MotionEvent.ACTION_MOVE -> {
+                val win = touchDraggedWindow
+                if (win != null) {
+                    val dx = (event.x - lastTouchX) / width * 2.0f
+                    val dy = -(event.y - lastTouchY) / height * 2.0f
+                    win.setPosition(win.posX + dx, win.posY + dy, win.posZ)
+                    lastTouchX = event.x
+                    lastTouchY = event.y
                 }
+            }
+            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                touchDraggedWindow = null
             }
         }
     }

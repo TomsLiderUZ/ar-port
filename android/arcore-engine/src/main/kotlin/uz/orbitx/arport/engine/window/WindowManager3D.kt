@@ -58,6 +58,20 @@ class WindowManager3D(
     }
 
     /**
+     * Directly adds an existing SpatialWindow to manager.
+     */
+    fun addWindow(window: SpatialWindow) {
+        synchronized(lock) {
+            if (!windows.any { it.id == window.id }) {
+                window.zOrder = nextZOrder++
+                windows.add(window)
+                enforceSleepPolicy()
+                setFocus(window.id)
+            }
+        }
+    }
+
+    /**
      * Finds a free horizontal position so windows do not overlap directly.
      */
     private fun calculateNonOverlappingX(newWidth: Float): Float {
@@ -288,6 +302,26 @@ class WindowManager3D(
         }
     }
 
+    var notesInputText: String = "Fazoviy klaviatura bilan yozing..."
+
+    fun appendNotesText(window: SpatialWindow, text: String) {
+        if (notesInputText == "Fazoviy klaviatura bilan yozing...") {
+            notesInputText = ""
+        }
+        notesInputText += text
+        renderNotesContent(window)
+    }
+
+    fun backspaceNotesText(window: SpatialWindow) {
+        if (notesInputText.isNotEmpty() && notesInputText != "Fazoviy klaviatura bilan yozing...") {
+            notesInputText = notesInputText.dropLast(1)
+            if (notesInputText.isEmpty()) {
+                notesInputText = "Fazoviy klaviatura bilan yozing..."
+            }
+            renderNotesContent(window)
+        }
+    }
+
     fun renderNotesContent(window: SpatialWindow) {
         window.contentSurface?.draw { canvas ->
             canvas.drawColor(Color.parseColor("#E618181A"))
@@ -314,15 +348,38 @@ class WindowManager3D(
                 color = Color.parseColor("#252528")
             }
 
-            var startY = 200f
+            var startY = 190f
             for (note in notes) {
-                canvas.drawRoundRect(RectF(40f, startY, 680f, startY + 140f), 20f, 20f, cardPaint)
+                canvas.drawRoundRect(RectF(40f, startY, 680f, startY + 110f), 20f, 20f, cardPaint)
                 paint.color = Color.WHITE
-                paint.textSize = 26f
+                paint.textSize = 25f
                 paint.isFakeBoldText = false
-                canvas.drawText(note, 65f, startY + 80f, paint)
-                startY += 170f
+                canvas.drawText(note, 65f, startY + 65f, paint)
+                startY += 130f
             }
+
+            // Interactive Live Typing Box from Spatial Keyboard
+            val inputBgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = Color.parseColor("#330A84FF")
+            }
+            val borderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = Color.parseColor("#660A84FF")
+                style = Paint.Style.STROKE
+                strokeWidth = 2f
+            }
+            canvas.drawRoundRect(RectF(40f, startY + 20f, 680f, startY + 200f), 20f, 20f, inputBgPaint)
+            canvas.drawRoundRect(RectF(40f, startY + 20f, 680f, startY + 200f), 20f, 20f, borderPaint)
+
+            paint.color = Color.parseColor("#64D2FF")
+            paint.textSize = 22f
+            paint.isFakeBoldText = true
+            canvas.drawText("⌨️ Matn kiritish (Jonli):", 65f, startY + 65f, paint)
+
+            paint.color = Color.WHITE
+            paint.textSize = 28f
+            paint.isFakeBoldText = false
+            val displayTxt = if (notesInputText.length > 32) "..." + notesInputText.takeLast(30) else notesInputText
+            canvas.drawText(displayTxt + "|", 65f, startY + 130f, paint)
         }
     }
 

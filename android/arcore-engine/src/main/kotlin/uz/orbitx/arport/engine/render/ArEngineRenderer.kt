@@ -4,10 +4,18 @@ import android.graphics.SurfaceTexture
 import android.opengl.GLES30
 import android.opengl.GLSurfaceView
 import android.opengl.Matrix
+import uz.orbitx.arport.engine.gestures.GestureEngine
+import uz.orbitx.arport.engine.gestures.GestureEvent
+import uz.orbitx.arport.engine.gestures.GestureListener
+import uz.orbitx.arport.engine.gestures.GestureType
+import uz.orbitx.arport.engine.input.InputInjector
+import uz.orbitx.arport.engine.input.KeyAction
+import uz.orbitx.arport.engine.input.SpatialKeyboard
 import uz.orbitx.arport.engine.stereo.LensProfile
 import uz.orbitx.arport.engine.stereo.StereoRenderer
 import uz.orbitx.arport.engine.tracking.TrackingManager
 import uz.orbitx.arport.engine.window.WindowManager3D
+import uz.orbitx.arport.engine.window.WindowState
 import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
 
@@ -34,6 +42,35 @@ class ArEngineRenderer(
     val glassRenderer = GlassRenderer()
     val handRenderer = HandRenderer()
     var handTracker: uz.orbitx.arport.engine.hand.HandTracker? = null
+
+    val gestureEngine = GestureEngine()
+    val inputInjector = InputInjector()
+    val spatialKeyboard = SpatialKeyboard()
+
+    var lastGestureLabel: String = "Kutilmoqda"
+    var onHomeDockRequested: (() -> Unit)? = null
+
+    init {
+        gestureEngine.setListener(object : GestureListener {
+            override fun onGestureEvent(event: GestureEvent) {
+                handleGestureEvent(event)
+            }
+        })
+
+        spatialKeyboard.onTextInput = { text ->
+            windowManager.allWindows.find { it.appId == "spatial_notes" }?.let { notesWin ->
+                windowManager.appendNotesText(notesWin, text)
+            }
+        }
+
+        spatialKeyboard.onKeyAction = { action ->
+            if (action is KeyAction.Backspace) {
+                windowManager.allWindows.find { it.appId == "spatial_notes" }?.let { notesWin ->
+                    windowManager.backspaceNotesText(notesWin)
+                }
+            }
+        }
+    }
 
     val stereoRenderer = StereoRenderer(
         ipdMm = ipdMm,
@@ -143,6 +180,7 @@ class ArEngineRenderer(
         }
 
         val visibleHands = handTracker?.getVisibleHands() ?: emptyList()
+        gestureEngine.processHands(visibleHands, windowManager)
 
         if (viewMode == "stereo") {
             val eyeW = stereoRenderer.eyeWidth
@@ -215,6 +253,77 @@ class ArEngineRenderer(
             Matrix.multiplyMM(vpMatrix, 0, projectionMatrix, 0, viewMatrix, 0)
             windowRenderer.drawWindows(windowManager, viewMatrix, projectionMatrix, vpMatrix, blurredTex, screenWidth, screenHeight, dtSec)
             handRenderer.drawHands(visibleHands, windowManager, viewMatrix, projectionMatrix)
+        }
+    }
+
+    private fun handleGestureEvent(event: GestureEvent) {
+        lastGestureLabel = when (event.type) {
+            GestureType.TAP -> "Bosish (Tap)"
+            GestureType.HOLD -> "Ushlab turish (Hold)"
+            GestureType.DRAG -> "Sudrash (Drag)"
+            GestureType.SCROLL -> "Aylantirish (Scroll)"
+            GestureType.TWO_HAND_ZOOM -> "Kattalashtirish (Zoom)"
+            GestureType.CORNER_RESIZE -> "O'lcham (Resize)"
+            GestureType.DEPTH_MOVE -> "Z-masofa (Depth)"
+            GestureType.PALM_UP -> "Kaft ochiq (Home)"
+            GestureType.SWIPE_LEFT -> "Surish chapga (Swipe L)"
+            GestureType.SWIPE_RIGHT -> "Surish o'ngga (Swipe R)"
+            GestureType.FIST -> "Musht (Fist)"
+            GestureType.HOVER -> "Nishon (Hover)"
+            else -> "Oddiy"
+        }
+
+        // 1. Keyboard Tap interaction
+        if (event.window?.appId == "spatial_keyboard" && event.type == GestureType.TAP) {
+            spatialKeyboard.onKeyHit(event.u, event.v)
+            return
+        }
+
+        // 2. Direct Window Transformations (Drag, Depth, Resize, Controls)
+        val handled = inputInjector.handleWindowGesture(event, windowManager)
+        if (handled) return
+
+        // 3. System-level Gestures
+        when (event.type) {
+            GestureType.PALM_UP -> {
+                onHomeDockRequested?.invoke()
+            }
+            GestureType.SWIPE_LEFT -> {
+                cycleWindowFocus(forward = true)
+            }
+            GestureType.SWIPE_RIGHT -> {
+                cycleWindowFocus(forward = false)
+            }
+            GestureType.FIST -> {
+                event.window?.let { windowManager.closeWindow(it.id) }
+            }
+            else -> {}
+        }
+    }
+
+    fun cycleWindowFocus(forward: Boolean) {
+        val active = windowManager.activeWindows
+        if (active.size <= 1) return
+        val currentIndex = active.indexOfFirst { it.isFocused }
+        val nextIndex = if (forward) {
+            (currentIndex + 1) % active.size
+        } else {
+            (currentIndex - 1 + active.size) % active.size
+        }
+        windowManager.setFocus(active[nextIndex].id)
+    }
+
+    fun toggleSpatialKeyboard() {
+        val existingKb = windowManager.allWindows.find { it.appId == "spatial_keyboard" }
+        if (existingKb == null) {
+            val kbWin = spatialKeyboard.createKeyboardWindow()
+            windowManager.addWindow(kbWin)
+        } else {
+            if (existingKb.state == WindowState.MINIMIZED) {
+                windowManager.restoreWindow(existingKb.id)
+            } else {
+                windowManager.minimizeWindow(existingKb.id)
+            }
         }
     }
 

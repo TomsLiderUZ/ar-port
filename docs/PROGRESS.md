@@ -18,7 +18,7 @@ Ushbu hujjat har bir bosqich natijasini, qilingan ishlarni va ma'lum muammolarni
 | **8** | Fazoviy oyna menejeri va yuza (surface) tizimi | ✅ Bajarildi | SpatialWindow modeli, WindowManager3D, ContentSurface (offscreen canvas/texture), anti-overlap joylash, z-order, fokus, sleep siyosati, frustum culling, 3 ta sinov oynasi |
 | **9** | Liquid Glass renderer | ✅ Bajarildi | GlassRenderer (Kawase/dual-filter blur, 1/2 va 1/4 FBO ping-pong), squircle superellipse burchaklar, chekka nuri, specular yaltirash, SpringAnimation (Apple fizika burchagi va taktil tebranish), kamaytirilgan shaffoflik rejimi |
 | **10** | Qo'l kuzatuvi (MediaPipe) va qo'l yoritilishi | ✅ Bajarildi | HandTracker (MediaPipe Tasks Vision GPU/CPU, 21 landmark), OneEuroFilter (adaptiv silliqlash), HandRenderer (qo'l usti aurosi, skelet suyaklari, 3D hand ray, oynalar ustida hover yoritilishi, 200ms hold loss siyosati) |
-| **11** | Gest dvigateli va kiritishni oynaga uzatish | ⏳ Kutilmoqda | - |
+| **11** | Gest dvigateli va kiritishni oynaga uzatish | ✅ Bajarildi | GestureEngine (Pinch, Tap, Hold, Drag, Scroll inertsiya, Two-Hand Zoom, Corner Resize, Depth Z, Palm-up, Fist, Swipe), InputInjector (UV->Pixel, MotionEvent), SpatialKeyboard (UZ/EN/RU/Num/Emoji shisha klaviatura), Oddiy rejim teginish fallbacki |
 | **12** | Home panel, dock, ilova reyestri va plagin tizimi | ⏳ Kutilmoqda | - |
 | **13** | Web ilovalar, umumiy sessiya va sandbox | ⏳ Kutilmoqda | - |
 | **14** | Native ilovalar: Kamera, Qaydlar, Soat, Kalendar | ⏳ Kutilmoqda | - |
@@ -226,5 +226,39 @@ Ushbu hujjat har bir bosqich natijasini, qilingan ishlarni va ma'lum muammolarni
      - Debug HUD da real vaqtda qo'l holati va FPS ko'rsatkichi (masalan: `Qo'l: 1 qo'l (30 FPS)`).
   6. Tekshiruv va sinovlar:
      - JVM unit testlari (`HandTest.kt`, `SpringTest.kt`, `WindowTest.kt`, `StereoTest.kt`, `QuaternionTest.kt` bo'yicha jami 26 ta test) to'liq muvaffaqiyatli o'tdi (`BUILD SUCCESSFUL in 1m 7s`).
+     - Flutter testlari (12 ta test) va Flutter tahlili (`flutter analyze` — 0 ogohlantirish) to'liq o'tdi.
+     - Debug APK (`flutter build apk --debug`) muvaffaqiyatli yig'ildi (`build\app\outputs\flutter-apk\app-debug.apk`, 215.8 MB).
+
+---
+
+## QADAM 11 Batafsil Hisoboti
+- **Sana:** 2026-10-31
+- **Bajarildi:**
+  1. Gest dvigateli (`GestureEngine.kt`):
+     - Pinch va histerezis: kirish chegarasi $0.052$, chiqish chegarasi $0.078$ (titrash va chegaraviy sakrashlarni to'liq yo'qotuvchi histerezis mexanizmi).
+     - Tap: chimchilash davomiyligi $< 350$ ms bo'lganda `ACTION_DOWN` + `ACTION_UP` bosish voqeasi.
+     - Hold: chimchilash $\ge 500$ ms ushlab turilganda kontekst menyu / uzoq bosish voqeasi.
+     - Drag & Depth Move: chimchilab siljitganda oyna koordinatalarini ($X, Y$) yoki Z chuqurlik masofasini o'zgartirish.
+     - Scroll: kontent ustida chimchilab surish va barmoq uzilganda eksponensial so'nuvchi ($0.92$) inertsiya bilan aylantirish.
+     - Two-Hand Zoom: ikki qo'l bilan bir vaqtda chimchilab, qo'llar orasidagi masofani o'zgartirish orqali oynani mutanosib masshtablash.
+     - Corner Resize: oyna burchak tutqichidan tortib o'lcham va tomonlar nisbatini erkin sozlash.
+     - Palm-up (Home dock): barcha barmoqlar ochiq holda kaft yuqoriga qaragan holatda $\ge 400$ ms turganda Home panel ochilish hodisasi.
+     - Fist (Musht): barcha barmoqlar yumuq holatda $\ge 500$ ms ushlab turganda oynani yopish tasdig'i.
+     - Swipe: tez gorizontal harakat ($< 280$ ms) orqali ilovalar orasida o'tish yoki orqaga qaytish.
+  2. Kiritish injektori (`InputInjector.kt`):
+     - UV fazoviy koordinatalarni ($[0..1, 0..1]$) Android 2D View piksel koordinatalariga konvertatsiya qilish ($x = u \times W, y = (1 - v) \times H$).
+     - Fazoviy nurning oyna bilan kesishgan nuqtasidan Android `MotionEvent` lari (`ACTION_DOWN`, `ACTION_MOVE`, `ACTION_UP`) generatsiyasi.
+     - To'g'ridan-to'g'ri fazoviy oyna boshqaruvi (koordinata siljishi, Z chuqurlik qisqichlari $[-4.0..-0.8]$, o'lcham va aspekt almashinuvi).
+  3. Fazoviy suzuvchi shisha klaviatura (`SpatialKeyboard.kt`):
+     - iOS Liquid Glass uslubidagi shisha keycaplar, neon nurli hoshiya va taktil yoritish.
+     - O'zbek (lotin: G', O', Sh, Ch harflari bilan), ingliz, rus, raqam/maxsus belgilar va emoji to'plamlari.
+     - Ko'rsatkich barmog'i lazer nuri orqali masofadan urish (tap) yoki sensorli ekranda to'g'ridan-to'g'ri teginish orqali yozish.
+     - Eslatmalar ("Spatial Notes") oynasiga jonli matn kiritish integratsiyasi (matn qo'shish va `Backspace`).
+  4. Oddiy rejim (Normal mode) teginish fallbacki:
+     - Sensorli ekranda bosish, sudrash va harflarni urish orqali to'liq 3D boshqaruv.
+     - HUD boshqaruv panelida "⌨️ Klaviatura" tugmasi orqali klaviaturani fazoda chiqarish/yashirish.
+     - Jonli HUD da faol gest ko'rsatkichi (masalan: `Gest: Bosish (Tap)`, `Kaft ochiq (Home)`).
+  5. Tekshiruv va sinovlar:
+     - JVM unit testlari (`GestureTest.kt`, `HandTest.kt`, `SpringTest.kt`, `WindowTest.kt`, `StereoTest.kt`, `QuaternionTest.kt` bo'yicha jami **35 ta test**) to'liq muvaffaqiyatli o'tdi (`BUILD SUCCESSFUL in 39s`).
      - Flutter testlari (12 ta test) va Flutter tahlili (`flutter analyze` — 0 ogohlantirish) to'liq o'tdi.
      - Debug APK (`flutter build apk --debug`) muvaffaqiyatli yig'ildi (`build\app\outputs\flutter-apk\app-debug.apk`, 215.8 MB).
