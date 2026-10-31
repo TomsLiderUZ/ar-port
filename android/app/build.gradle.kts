@@ -1,3 +1,6 @@
+import java.util.Properties
+import java.io.FileInputStream
+
 plugins {
     id("com.android.application")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
@@ -22,10 +25,29 @@ android {
         versionName = flutter.versionName
     }
 
+    val keystorePropertiesFile = file("../key.properties")
+    val keystoreProperties = Properties()
+    if (keystorePropertiesFile.exists()) {
+        FileInputStream(keystorePropertiesFile).use { stream ->
+            keystoreProperties.load(stream)
+        }
+    }
+
+    signingConfigs {
+        create("release") {
+            keyAlias = keystoreProperties.getProperty("keyAlias") ?: "arport"
+            keyPassword = keystoreProperties.getProperty("keyPassword") ?: "arport123"
+            val storePath = keystoreProperties.getProperty("storeFile") ?: "release.keystore"
+            storeFile = file(storePath)
+            storePassword = keystoreProperties.getProperty("storePassword") ?: "arport123"
+        }
+    }
+
     buildTypes {
         release {
-            signingConfig = signingConfigs.getByName("debug")
-            isMinifyEnabled = false // Will be enabled with release keystore in QADAM 19
+            signingConfig = signingConfigs.getByName("release")
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }

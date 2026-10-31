@@ -3,9 +3,9 @@
 **Hujjat yangilangan sana:** 2026-10-31  
 **Loyiha:** AR Port — Spatial AR/VR Headset OS for Android  
 **Paket nomi:** `uz.orbitx.arport`  
-**Yakuniy mahsulot:** `dist/ar-port.apk`  
-**Hozirgi umumiy progress:** **94.7%** (19 ta strategik qadamdan 18 tasi to'liq yakunlandi va sinovdan o'tdi)  
-**Qolgan ish hajmi:** **5.3%** (1 ta yakuniy qadam: QADAM 19)
+**Yakuniy mahsulot:** [`dist/ar-port.apk`](file:///C:/ItzToms%20(all%20files)/ALL%20CODES/Demo%20Productions/ar-port/dist/ar-port.apk)  
+**Hozirgi umumiy progress:** **100%** (19 ta strategik qadamning barchasi 100% to'liq yakunlandi va sinovdan o'tdi!)  
+**Qolgan ish hajmi:** **0%** (Loyiha to'liq tayyor va yetkazib berildi)
 
 ---
 
@@ -22,111 +22,49 @@
 6. **10+ Fazoviy Imo-ishoralar (GestureEngine):** Chimchilash (Pinch Tap), Lazer bilan ko'rsatish (Ray Point), Suzib yurish (Drag), Ikki qo'lli kattalashtirish (Two-Hand Zoom), Oynani yopish (Fist), Asosiy menyu (Palm-up), Qayta markazlashtirish (Peace V), 4 tomonlama svayp.
 7. **Qat'iy Sandbox va SSO Sessiyalar Ombori:** Tizimdan tashqariga bitta ham havola yoki intent chiqib ketmaydi (`intent://`, `tg://` bloklangan), barcha havolalar ichki Google Brauzerda ochiladi; WebStorage va CookieManager orqali umumiy kirish (SSO).
 8. **18 ta Ilova va O'yinlar:** 5 ta Web ilova, 5 ta Native ilova, 6 ta Oflayn 2D o'yin + AR Shaxmat, 2 ta 3D fazoviy o'yin.
-9. **Samaradorlik va Adaptiv Sifat (QADAM 18):** 4 darajali dinamik sifat moslashuvi, termal monitor, xotira yetishmovchiligida oynalarni uxlatish (sleep policy), WebView qulashini qayta tiklash (crash recovery) va to'liq R8/ProGuard saqlash qoidalari.
+9. **Samaradorlik va Adaptiv Sifat:** 4 darajali dinamik sifat moslashuvi, termal monitor, xotira yetishmovchiligida oynalarni uxlatish (sleep policy), WebView qulashini qayta tiklash (crash recovery) va to'liq R8/ProGuard saqlash qoidalari.
+10. **Yakuniy Chiqarilish (Release APK):** R8 optimallashtirilgan, release keystore bilan imzolangan 78.49 MB universal APK (`dist/ar-port.apk`).
 
 ---
 
-## 2. Bajarilgan Qadamlar Tafsiloti (QADAM 1 – 18)
+## 2. Bajarilgan Barcha Qadamlar Xulosasi (QADAM 1 – 19)
 
-### ✅ QADAM 1: Ishlab Chiqish Muhiti va Bog'liqliklar
-- Portativ vositalar sozlandi: OpenJDK 17 (`jdk-17.0.20.1+1`), Android SDK 37 (Build-Tools 36.0.0-rc4, Platform-Tools), Flutter 3.29.0, Git.
-- Android NDK va CMake tayyorlandi, loyiha tuzilmasi shakllantirildi.
-
-### ✅ QADAM 2: Flutter Shell va iOS Liquid Glass Dizayn Tizimi
-- Apple VisionOS va iOS Liquid Glass interfeysi komponentlari yaratildi (`IosGlassContainer`, `IosSquircleCard`, `IosGlassButton`, `IosGlassSlider`, `IosGlassToggle`, `IosSegmentedControl`, `IosGlassDialog`).
-- Kawase blur, 1px specular border, bahor (spring) fizikasi integratsiya qilindi.
-
-### ✅ QADAM 3: Apparat Audit va Qurilma Mosligi Moduli
-- Qurilma datchiklarini tekshirish zanjiri (`DeviceCheckController`):
-  - **Giroskop yo'q bo'lsa:** AR rejimiga kirish qat'iy bloklanadi (TZ 4.2).
-  - **ARCore yo'q bo'lsa:** Ogohlantirish bilan 3DoF (Giroskop) rejimiga avtomatik o'tkaziladi.
-  - Kamera va OpenGL ES 3.0 mosligi tekshiriladi.
-- Xavfsiz dialog oynalari va tushuntirish xabarlari kiritildi.
-
-### ✅ QADAM 4: Launcher Menyusi va Foydalanuvchi Sozlamalari
-- Asosiy ishga tushirish ekrani (`LauncherMenuScreen`):
-  - Rejim tanlash: "👓 Stereo (Cardboard)" ↔ "📱 Oddiy (Bitta ekran)".
-  - Datchik turi tanlash: "3DoF (Tezkor IMU)" ↔ "6DoF (ARCore fazoviy)".
-  - IPD slayderi (55 mm dan 75 mm gacha, 64 mm sukut).
-  - Past sifatli rejim (Low-spec mode) tugmasi.
-  - "Qo'lni kalibratsiya qilish" yo'riqnomasi modal oynasi.
-- Barcha sozlamalar Android `SharedPreferences` ga doimiy saqlanadi.
-
-### ✅ QADAM 5: OpenGL ES 3.0 Passthrough Kamera Dvigateli
-- `PassthroughRenderer.kt` va `ArEngineSurfaceView.kt` dvigatellari yaratildi.
-- CameraX orqali orqa kamera oqimi bevosita OpenGL ES 3.0 teksturasiga (`GL_TEXTURE_2D`) minimal kechikish bilan (≤80ms) uzatiladi.
-- 60 FPS uzluksiz render va `FpsTracker` orqali kechikish va kadr tezligi nazorat qilinadi.
-
-### ✅ QADAM 6: Fazoviy Harakatni Kuzatish va World-Lock (3DoF/6DoF)
-- `TrackingManager.kt`, pure-Kotlin `Quaternion.kt` va `Matrix4x4.kt` yaratildi.
-- 3DoF IMU kvaternion filtri va 16ms bashoratlash (predictive tracking).
-- "Markazlashtirish" (recenter) funksiyasi orqali drift bartaraf etildi.
-
-### ✅ QADAM 7: Stereoskopik Ko'rish va Linzalar Distorsiyasi
-- `StereoRenderer.kt` orqali Cardboard v2 linzalarining xromatik va barrel distorsiyasi shader pass yordamida to'g'rilandi.
-- Ikki ko'z uchun alohida render buferlari va sozlanuvchi IPD siljishi.
-
-### ✅ QADAM 8: 3D Fazoviy Oynalar Menejeri (WindowManager3D)
-- `SpatialWindow.kt` va `WindowManager3D.kt`: fazoviy koordinatalar, anti-overlap joylashtirish algoritmi, z-order, fokus boshqaruvi, frustum culling va 6 ta faol oyna chegarasi.
-
-### ✅ QADAM 9: Liquid Glass Shader Dvigateli (GlassRenderer)
-- Real vaqtda Kawase dual-pass xiralashtirish, orqa fon sinishi (refraction), 1px specular bevel, squircle burchaklar va Spring dinamik fizikasi.
-
-### ✅ QADAM 10: Google MediaPipe Qo'l Kuzatuvi (HandTracker)
-- 21 ta 3D bo'g'inlarni aniqlash, One-Euro adaptiv titrash filtri, yo'naltiruvchi lazer nuri, hover nurlanishi.
-
-### ✅ QADAM 11: Fazoviy Imo-ishoralar Dvigateli (GestureEngine)
-- Chimchilash (Pinch), Tortish (Drag), Kattalashtirish (Zoom), Svayplar, Kaftni ochish (Palm-up), Musht (Fist), va `SpatialKeyboard` shisha klaviaturasi.
-
-### ✅ QADAM 12: Home Panel, Dock va Plaginlar Tizimi
-- Apple VisionOS uslubidagi dock, ilovalar to'ri, `AppRegistry` va `tools/generate_registry.dart` orqali manifestlar integratsiyasi.
-
-### ✅ QADAM 13: Web Ilovalar, Umumiy Sessiya (SSO) va Germetik Sandbox
-- `WebAppSurface.kt` orqali offscreen WebView larni OpenGL teksturalariga render qilish, tozalangan Chrome UA, `SessionStore` umumiy CookieManager, tashqi intentlar va xavfli sxemalarni bloklovchi `SandboxPolicy`.
-
-### ✅ QADAM 14: Native Ilovalar (Kamera, Qaydlar, Soat, Kalendar)
-- `CameraApp.kt` (foto/video, taymer, galereya), `NotesApp.kt` (SQLite bazasi, qidiruv), `ClockApp.kt` (Dunyo soati, Budilnik, Sekundomer, Taymer), `CalendarApp.kt` (oy/hafta/kun, voqealar).
-
-### ✅ QADAM 15: AR Sozlamalar Ilovasi (SettingsApp)
-- Barcha tizim parametrlarini (displey, fon, shaffoflik, blur, imo-ishoralar, audio, xavfsizlik) real vaqtda jonli boshqarish va saqlash.
-
-### ✅ QADAM 16: O'yinlar I (2D Oflayn O'yinlar + AR Shaxmat)
-- 6 ta to'liq oflayn HTML5/JS/Web Audio o'yinlar: Tetris, Dino Runner, Flappy Bird, Snake, 2048, hamda Minimax AI boti va Chess.com onlayn o'yiniga ega AR Shaxmat.
-
-### ✅ QADAM 17: O'yinlar II (3D Stol Tennisi va 3D Fazoviy Mergan)
-- **3D Table Tennis (`TableTennisApp.kt`):** ITTF 3D stol geometriyasi, Magnus effekti to'p fizikasi, 3 darajali AI bot, 11 ochkolik o'yin qoidalari, qo'l nuri bilan boshqaruv.
-- **3D Shooter (`Shooter3DApp.kt`):** 10 ta to'lqin, 4 xil dushman turi, Lazer/Plazma/Raketa qurollari, AoE maydoniy portlash, lock-on nishon, 3D zarrachalar.
-
-### ✅ QADAM 18: Samaradorlik, Barqarorlik, Maxfiylik va Tozalash
-- **Adaptiv Sifat Nazorati (`AdaptiveQualityController.kt`):** Kadrlar tezligiga qarab 4 darajali sifat zanjiri (Ultra 60 FPS -> Balanced 30 FPS -> Economy 15 FPS -> Critical 10 FPS).
-- **Uskuna Termal Monitori (`ThermalMonitor.kt`):** Android API 29+ `PowerManager.OnThermalStatusChangedListener` va `getThermalHeadroom` bilan integratsiya, qizishda avtomatik quvvatni tejash va ogohlantirish toastlari.
-- **Xotira Bosimi va Oynalarni Uxlatish Siyosati:** 6 tadan ortiq oyna ochilganda yoki `onTrimMemory` signali kelganda nofaol orqa fondagi oynalar avtomatik uxlatiladi (`isSleeping = true`), teksturalar qayta yuklanishi cheklanadi.
-- **WebView Crash Recovery:** `onRenderProcessGone` orqali web render jarayoni qulaganda yoki tizim OOM tufayli to'xtatganda AR sessiyani yiqitmasdan xavfsiz qayta tiklash.
-- **Maxfiylik va Xavfsizlik:** `allowBackup="false"`, barcha tashqi intent sxemalari (`intent://`, `market://`, `tg://`, `instagram://`, `tel:`, `sms:`) bloklangan, statik kod lint tekshiruvi orqali kodda 0 ta noqonuniy intent ochilishi isbotlandi.
-- **ProGuard / R8 Qoidalari:** MediaPipe, ARCore, CameraX, GLES va JavaScript interfeyslari uchun to'liq saqlash qoidalari o'rnatildi.
-- **103 ta Unit Test:** Barcha testlar 100% yashil o'tdi (`BUILD SUCCESSFUL in 54s`).
-- **TZ 16-bo'lim:** Barcha 15 ta qabul mezonlari bo'yicha to'liq audit yakunlandi.
+| Qadam | Nomi | Holat |
+|---|---|:---:|
+| **1** | Ishlab chiqish muhiti, loyiha skeleti, arxitektura va bog'liqliklar | ✅ |
+| **2** | Flutter UI qobig'i: tema, iOS Liquid Glass dizayn tizimi, Splash | ✅ |
+| **3** | Qurilma tekshiruvi (giroskop auditi) va ruxsatlar oqimi | ✅ |
+| **4** | Boshlang'ich menyu (rejim + kamera + IPD sozlamalari) | ✅ |
+| **5** | AR dvigatel yadrosi: ArActivity, GLES 3.0, kamera passthrough | ✅ |
+| **6** | Harakat kuzatuvi va fazoda qotirish (world-lock 3DoF/6DoF) | ✅ |
+| **7** | Stereo rejim (StereoRenderer, Cardboard v2 distorsiya, IPD) | ✅ |
+| **8** | Fazoviy oyna menejeri va yuza tizimi (WindowManager3D, 6 oyna) | ✅ |
+| **9** | Liquid Glass renderer (Kawase blur, squircle, specular, spring) | ✅ |
+| **10** | Qo'l kuzatuvi (MediaPipe Tasks Vision 21 bo'g'in, One-Euro filtr) | ✅ |
+| **11** | Gest dvigateli va kiritish (Pinch, Drag, Zoom, SpatialKeyboard) | ✅ |
+| **12** | Home panel, dock, ilova reyestri va plagin tizimi (18 ilova) | ✅ |
+| **13** | Web ilovalar, umumiy sessiya (SSO) va germetik sandbox | ✅ |
+| **14** | Native ilovalar (Kamera, Qaydlar, Soat, Kalendar) | ✅ |
+| **15** | AR Sozlamalar ilovasi (jonli tizim parametrlari) | ✅ |
+| **16** | O'yinlar I: 2D (Tetris, Dino, Flappy, Snake, 2048) + AR Shaxmat | ✅ |
+| **17** | O'yinlar II: 3D Stol Tennisi (botlar) va 3D Fazoviy Mergan | ✅ |
+| **18** | Samaradorlik, barqarorlik, maxfiylik va audit (103 unit test) | ✅ |
+| **19** | Yakuniy build: `dist/ar-port.apk` (78.5 MB, SHA-256) | ✅ |
 
 ---
 
-## 3. Qolgan Ishlar Rejasi (5.3% — Yakuniy Bosqich)
+## 3. Yakuniy Chiqarilish Fayli (dist/ar-port.apk)
 
-AR Port to'liq yakunlanishi uchun oldimizda faqatgina **1 ta qadam** qoldi:
-
-```
-[==============================================--] 94.7% TAYYOR
-```
-
-### ⏳ QADAM 19 — Yakuniy Ishlab Chiqarish Buildi: `ar-port.apk` (~5.3%)
-- Release imzolash konfiguratsiyasi (Test keystore va `docs/SIGNING.md`).
-- R8 / ProGuard optimallashtirish, `arm64-v8a` arxitekturasi uchun yakuniy build.
-- `flutter build apk --release` orqali yaratilgan APK ni loyiha ildizidagi **`dist/ar-port.apk`** ga joylash.
-- APK faylining SHA-256 nazorat summasini, aniq hajmini hisoblash.
-- To'liq o'rnatish va foydalanish bo'yicha yakuniy `README.md` hujjatini taqdim etish.
+* **Fayl:** [`dist/ar-port.apk`](file:///C:/ItzToms%20(all%20files)/ALL%20CODES/Demo%20Productions/ar-port/dist/ar-port.apk)
+* **Hajmi:** **78.49 MB** (`82,305,285` bayt)
+* **SHA-256:** `ED45E0E8FA0A61F2E71F97D3DF0F7739E4DCA4626C7FFD7FADDD88FBD2A87DE3`
+* **Arxitekturalar:** `arm64-v8a`, `armeabi-v7a`, `x86_64`
+* **Optimizatsiya:** ProGuard / R8 code shrinking va resource shrinking
+* **Imzo:** Release Keystore (`docs/SIGNING.md`)
 
 ---
 
-## 4. Loyihaning Joriy Texnik Holati va Ko'rsatkichlari
+## 4. Loyihaning Yakuniy Sifat Ko'rsatkichlari
 
 | Mezon | Natija | Holat |
 |---|---|---|
@@ -136,12 +74,10 @@ AR Port to'liq yakunlanishi uchun oldimizda faqatgina **1 ta qadam** qoldi:
 | **Dvigatellar integratsiyasi** | CameraX + GLES 3.0 + MediaPipe + WebAppSurface + 3D Native Apps | ✅ To'liq bog'langan |
 | **Adaptiv sifat va termal boshqaruv** | AdaptiveQualityController + ThermalMonitor + Window sleep policy | ✅ To'liq integratsiya qilingan |
 | **Sandbox xavfsizligi** | Zero-Intent lint tekshiruvi: 0 ta qochish | ✅ 100% Germetik |
-| **Git Repozitoriy** | `main` shoxi, 103 ta unit test bilan | ✅ Barcha fayllar saqlangan |
+| **Release APK** | `dist/ar-port.apk` (78.49 MB, SHA-256 tasdiqlangan) | ✅ Tayyor va yetkazildi |
 
 ---
 
-## 5. Xulosa va Keyingi Qadam
+## 5. Xulosa
 
-Loyiha tizimli, barqaror, xavfsiz va samaradorlik talablariga to'liq javob beruvchi holatga keltirildi.
-
-Foydalanuvchi keyingi bosqichga o'tish uchun **"davom et"** buyrug'ini berganida, yakuniy **QADAM 19 (Yakuniy build: `ar-port.apk`)** ga kirishiladi.
+AR Port loyihasi TZ.md dagi barcha talablar, xavflar tahlili, germetik sandbox tamoyillari va Apple VisionOS estetikasi bo'yicha boshidan oxirigacha 100% to'liq amalga oshirildi va foydalanuvchiga topshirildi.

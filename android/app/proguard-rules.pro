@@ -23,8 +23,12 @@
 -keep class androidx.camera.** { *; }
 -dontwarn androidx.camera.**
 
+# Suppress compiler annotation processor warnings from auto-value / guava
+-dontwarn javax.annotation.processing.**
+-dontwarn javax.lang.model.**
+-dontwarn com.google.auto.value.**
+
 # Prohibit Intent escaping or reflection of dangerous components
 -assumenosideeffects class android.util.Log {
     public static boolean isLoggable(java.lang.String, int);
 }
-
