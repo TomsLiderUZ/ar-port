@@ -80,6 +80,7 @@ class ArActivity : AppCompatActivity() {
     private lateinit var rootLayout: FrameLayout
     private lateinit var glSurfaceView: GLSurfaceView
     private var trackingManager: TrackingManager? = null
+    private var handTracker: uz.orbitx.arport.engine.hand.HandTracker? = null
     private var arRenderer: ArEngineRenderer? = null
     private var cameraManager: PassthroughCameraManager? = null
 
@@ -142,6 +143,10 @@ class ArActivity : AppCompatActivity() {
                 glSurfaceView.requestRender()
             }
         )
+
+        val ht = uz.orbitx.arport.engine.hand.HandTracker(this)
+        handTracker = ht
+        arRenderer?.handTracker = ht
 
         glSurfaceView.setRenderer(arRenderer)
         glSurfaceView.renderMode = GLSurfaceView.RENDERMODE_CONTINUOUSLY
@@ -484,7 +489,7 @@ class ArActivity : AppCompatActivity() {
     }
 
     private fun startCameraStream(surfaceTexture: android.graphics.SurfaceTexture) {
-        cameraManager = PassthroughCameraManager(
+        val cm = PassthroughCameraManager(
             context = this,
             lifecycleOwner = this,
             cameraId = cameraId,
@@ -494,7 +499,20 @@ class ArActivity : AppCompatActivity() {
                 arRenderer?.setCameraPreviewSize(width, height)
             }
         )
-        cameraManager?.startCamera(surfaceTexture)
+
+        // Setup ImageAnalysis for 30 FPS hand landmark tracking (TZ 6.1)
+        val imageAnalysis = androidx.camera.core.ImageAnalysis.Builder()
+            .setTargetResolution(android.util.Size(640, 480))
+            .setBackpressureStrategy(androidx.camera.core.ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+            .build()
+
+        handTracker?.let { tracker ->
+            imageAnalysis.setAnalyzer(androidx.core.content.ContextCompat.getMainExecutor(this), tracker)
+        }
+        cm.imageAnalysis = imageAnalysis
+
+        cameraManager = cm
+        cm.startCamera(surfaceTexture)
     }
 
     private fun startHudUpdater() {
@@ -506,9 +524,13 @@ class ArActivity : AppCompatActivity() {
                 val trackingLabel = trackingManager?.getTrackingModeLabel() ?: "3DoF"
                 val modeLabel = if (viewMode == "stereo") "Stereo (IPD: ${ipdMm.toInt()}mm)" else "Oddiy"
 
+                val handFps = handTracker?.fpsTracker?.getFps() ?: 0f
+                val handCount = handTracker?.getVisibleHands()?.size ?: 0
+                val handStatus = if (handCount > 0) "$handCount qo'l (${handFps.toInt()} FPS)" else "Qo'l yo'q"
+
                 val hudText = String.format(
-                    "AR Port • %s | %s\nFPS: %.1f | Kechikish: %.1f ms | %s",
-                    modeLabel, trackingLabel, fps, latency, resolution
+                    "AR Port • %s | %s\nFPS: %.1f | Kechikish: %.1f ms | Qo'l: %s",
+                    modeLabel, trackingLabel, fps, latency, handStatus
                 )
                 leftHudTextView.text = hudText
                 if (viewMode == "stereo") {
@@ -643,6 +665,7 @@ class ArActivity : AppCompatActivity() {
         isHudActive = false
         mainHandler.removeCallbacksAndMessages(null)
         trackingManager?.stop()
+        handTracker?.release()
         cameraManager?.stopCamera()
         arRenderer?.release()
     }

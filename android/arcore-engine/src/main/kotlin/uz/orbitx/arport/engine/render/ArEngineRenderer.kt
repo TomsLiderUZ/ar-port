@@ -32,6 +32,8 @@ class ArEngineRenderer(
     val windowManager = WindowManager3D()
     val windowRenderer = WindowRenderer3D()
     val glassRenderer = GlassRenderer()
+    val handRenderer = HandRenderer()
+    var handTracker: uz.orbitx.arport.engine.hand.HandTracker? = null
 
     val stereoRenderer = StereoRenderer(
         ipdMm = ipdMm,
@@ -62,6 +64,7 @@ class ArEngineRenderer(
         stereoRenderer.onSurfaceCreated()
         glassRenderer.onSurfaceCreated()
         windowRenderer.onSurfaceCreated()
+        handRenderer.onSurfaceCreated()
 
         passthroughRenderer.surfaceTexture?.let { st ->
             onSurfaceTextureReady(st)
@@ -139,6 +142,8 @@ class ArEngineRenderer(
             }
         }
 
+        val visibleHands = handTracker?.getVisibleHands() ?: emptyList()
+
         if (viewMode == "stereo") {
             val eyeW = stereoRenderer.eyeWidth
             val eyeH = stereoRenderer.eyeHeight
@@ -161,6 +166,7 @@ class ArEngineRenderer(
             trackingManager.getViewMatrix(viewMatrix, -eyeOffsetM)
             Matrix.multiplyMM(vpMatrix, 0, projectionMatrix, 0, viewMatrix, 0)
             windowRenderer.drawWindows(windowManager, viewMatrix, projectionMatrix, vpMatrix, blurredLeftTex, eyeW, eyeH, dtSec)
+            handRenderer.drawHands(visibleHands, windowManager, viewMatrix, projectionMatrix)
 
             // 2. Right Eye Pass
             stereoRenderer.beginRightEye()
@@ -177,6 +183,7 @@ class ArEngineRenderer(
             trackingManager.getViewMatrix(viewMatrix, eyeOffsetM)
             Matrix.multiplyMM(vpMatrix, 0, projectionMatrix, 0, viewMatrix, 0)
             windowRenderer.drawWindows(windowManager, viewMatrix, projectionMatrix, vpMatrix, blurredRightTex, eyeW, eyeH, dtSec)
+            handRenderer.drawHands(visibleHands, windowManager, viewMatrix, projectionMatrix)
 
             // 3. Post-processing Barrel Distortion Pass
             stereoRenderer.finishAndDistort()
@@ -207,6 +214,7 @@ class ArEngineRenderer(
             trackingManager.getViewMatrix(viewMatrix, 0f)
             Matrix.multiplyMM(vpMatrix, 0, projectionMatrix, 0, viewMatrix, 0)
             windowRenderer.drawWindows(windowManager, viewMatrix, projectionMatrix, vpMatrix, blurredTex, screenWidth, screenHeight, dtSec)
+            handRenderer.drawHands(visibleHands, windowManager, viewMatrix, projectionMatrix)
         }
     }
 
@@ -255,6 +263,7 @@ class ArEngineRenderer(
         releaseNormalFramebuffers()
         passthroughRenderer.release()
         windowRenderer.release()
+        handRenderer.release()
         glassRenderer.release()
         stereoRenderer.release()
         windowManager.release()

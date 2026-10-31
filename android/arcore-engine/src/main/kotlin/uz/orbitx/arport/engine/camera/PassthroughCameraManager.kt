@@ -10,7 +10,9 @@ import android.view.Surface
 import androidx.camera.camera2.interop.Camera2Interop
 import androidx.camera.core.Camera
 import androidx.camera.core.CameraSelector
+import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.Preview
+import androidx.camera.core.UseCase
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
@@ -33,6 +35,7 @@ class PassthroughCameraManager(
     private var cameraProvider: ProcessCameraProvider? = null
     private var camera: Camera? = null
     private var preview: Preview? = null
+    var imageAnalysis: ImageAnalysis? = null
     private var surface: Surface? = null
 
     fun startCamera(surfaceTexture: SurfaceTexture) {
@@ -117,12 +120,16 @@ class PassthroughCameraManager(
             .build()
 
         try {
+            val useCases = mutableListOf<UseCase>()
+            preview?.let { useCases.add(it) }
+            imageAnalysis?.let { useCases.add(it) }
+
             camera = provider.bindToLifecycle(
                 lifecycleOwner,
                 cameraSelector,
-                preview
+                *useCases.toTypedArray()
             )
-            Log.i(TAG, "Camera bound successfully. ID: $cameraId, Res: $resolution, Target FPS: $targetFps")
+            Log.i(TAG, "Camera bound successfully with ${useCases.size} use cases. ID: $cameraId, Res: $resolution, Target FPS: $targetFps")
         } catch (e: Exception) {
             Log.e(TAG, "Use case binding failed: ${e.message}", e)
         }

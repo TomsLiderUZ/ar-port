@@ -13,7 +13,7 @@ class FpsTracker {
     private var latencySampleCount: Int = 0
 
     @Synchronized
-    fun onFrameRendered(sensorTimestampNs: Long) {
+    fun onFrameRendered(sensorTimestampNs: Long = 0L) {
         val nowNs = System.nanoTime()
 
         // 1. Calculate camera delivery latency (motion-to-frame arrival on GPU)

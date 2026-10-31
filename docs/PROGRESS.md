@@ -17,7 +17,7 @@ Ushbu hujjat har bir bosqich natijasini, qilingan ishlarni va ma'lum muammolarni
 | **7** | Stereo rejim | ✅ Bajarildi | StereoRenderer (dual FBO, Cardboard v2 barrel distortion, k1/k2, IPD siljishi, markaziy ajratuvchi chiziq, jonli kalibratsiya dialogi, real vaqtda Stereo ↔ Oddiy almashinuvi, dual stereoscopic HUD) |
 | **8** | Fazoviy oyna menejeri va yuza (surface) tizimi | ✅ Bajarildi | SpatialWindow modeli, WindowManager3D, ContentSurface (offscreen canvas/texture), anti-overlap joylash, z-order, fokus, sleep siyosati, frustum culling, 3 ta sinov oynasi |
 | **9** | Liquid Glass renderer | ✅ Bajarildi | GlassRenderer (Kawase/dual-filter blur, 1/2 va 1/4 FBO ping-pong), squircle superellipse burchaklar, chekka nuri, specular yaltirash, SpringAnimation (Apple fizika burchagi va taktil tebranish), kamaytirilgan shaffoflik rejimi |
-| **10** | Qo'l kuzatuvi (MediaPipe) va qo'l yoritilishi | ⏳ Kutilmoqda | - |
+| **10** | Qo'l kuzatuvi (MediaPipe) va qo'l yoritilishi | ✅ Bajarildi | HandTracker (MediaPipe Tasks Vision GPU/CPU, 21 landmark), OneEuroFilter (adaptiv silliqlash), HandRenderer (qo'l usti aurosi, skelet suyaklari, 3D hand ray, oynalar ustida hover yoritilishi, 200ms hold loss siyosati) |
 | **11** | Gest dvigateli va kiritishni oynaga uzatish | ⏳ Kutilmoqda | - |
 | **12** | Home panel, dock, ilova reyestri va plagin tizimi | ⏳ Kutilmoqda | - |
 | **13** | Web ilovalar, umumiy sessiya va sandbox | ⏳ Kutilmoqda | - |
@@ -200,5 +200,31 @@ Ushbu hujjat har bir bosqich natijasini, qilingan ishlarni va ma'lum muammolarni
      - Kalibratsiya dialogida Liquid Glass parametrlarini jonli almashtirish.
   5. Tekshiruv va sinovlar:
      - JVM unit testlari (`SpringTest.kt`, `WindowTest.kt`, `StereoTest.kt`, `QuaternionTest.kt` bo'yicha jami 22 ta test) to'liq muvaffaqiyatli o'tdi (`BUILD SUCCESSFUL in 59s`).
+     - Flutter testlari (12 ta test) va Flutter tahlili (`flutter analyze` — 0 ogohlantirish) to'liq o'tdi.
+     - Debug APK (`flutter build apk --debug`) muvaffaqiyatli yig'ildi (`build\app\outputs\flutter-apk\app-debug.apk`, 215.8 MB).
+
+---
+
+## QADAM 10 Batafsil Hisoboti
+- **Sana:** 2026-10-31
+- **Bajarildi:**
+  1. MediaPipe Tasks Vision integratsiyasi va model tayyorligi:
+     - Google rasmiy `hand_landmarker.task` modeli yuklandi (`android/arcore-engine/src/main/assets/models/hand_landmarker.task`, 7.82 MB).
+     - `HandTracker.kt`: CameraX `ImageAnalysis` oqimi orqali 30 FPS tahlil, `numHands=2`, GPU delegati (CPU fallback bilan).
+  2. One-Euro adaptiv filtrlash (`OneEuroFilter.kt`):
+     - Past harakat tezligida jitter (titrash) ni to'liq yo'qotuvchi va tez harakatda kechikishsiz ($f_{c,\min} = 1.0$ Hz, $\beta = 0.007$) 3D filtrlash.
+  3. Qo'l modeli va fazoviy nur proyeksiyasi (`HandModel.kt`):
+     - 21 ta bo'g'in landmarklari va skelet suyaklari ulanishlari.
+     - Ko'rsatkich barmoq uchi (landmark 8) dan kamera FOV si (~65°) bo'yicha 3D nur (`rayDir`) generatsiyasi.
+     - Qo'l yo'qolganda 200 ms ushlab turish (persistence hold timeout) mantig'i.
+  4. Qo'l usti yoritilishi va lazer nuri renderer (`HandRenderer.kt`):
+     - 21 ta bo'g'in ustida yarim shaffof oq-ko'k aura/glow nuqtalari (`#64D2FF`) va barmoq uchlarida kattalashtirilgan pulsatsiyalanuvchi yoritish (TZ 6.2).
+     - Ko'rsatkich barmog'idan fazoga yo'naltirilgan 3D lazer nuri (hand ray kursor).
+     - Oyna ustida hover yoritilishi: nur 3D oynaga tekkanda oyna sirtida yorqin nishon doirasi (reticle) paydo bo'lishi va oyna ramkasining yorqinlashishi.
+  5. Render va Activity integratsiyasi (`ArEngineRenderer.kt` va `ArActivity.kt`):
+     - Stereo va oddiy rejimlarda qo'llar va nur overlay sifatida sahnaning eng ustki qatlamida chiziladi.
+     - Debug HUD da real vaqtda qo'l holati va FPS ko'rsatkichi (masalan: `Qo'l: 1 qo'l (30 FPS)`).
+  6. Tekshiruv va sinovlar:
+     - JVM unit testlari (`HandTest.kt`, `SpringTest.kt`, `WindowTest.kt`, `StereoTest.kt`, `QuaternionTest.kt` bo'yicha jami 26 ta test) to'liq muvaffaqiyatli o'tdi (`BUILD SUCCESSFUL in 1m 7s`).
      - Flutter testlari (12 ta test) va Flutter tahlili (`flutter analyze` — 0 ogohlantirish) to'liq o'tdi.
      - Debug APK (`flutter build apk --debug`) muvaffaqiyatli yig'ildi (`build\app\outputs\flutter-apk\app-debug.apk`, 215.8 MB).
