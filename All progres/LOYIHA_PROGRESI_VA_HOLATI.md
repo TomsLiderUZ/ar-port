@@ -57,7 +57,7 @@
 
 * **Fayl:** [`dist/ar-port.apk`](file:///C:/ItzToms%20(all%20files)/ALL%20CODES/Demo%20Productions/ar-port/dist/ar-port.apk)
 * **Hajmi:** **79.05 MB** (`82,886,363` bayt)
-* **SHA-256:** `56B130096968E482344AC9B6CAB09B26723F744D379B776AF6DCAD780AB36A8A`
+* **SHA-256:** `D4E156E185CAC53EC1B7698D8262423A730747DF148EC3DC1AAD98453E250C63`
 * **Arxitekturalar:** `arm64-v8a`, `armeabi-v7a`, `x86_64`
 * **Optimizatsiya:** ProGuard / R8 code shrinking va resource shrinking
 * **Imzo:** Release Keystore (`docs/SIGNING.md`)
@@ -65,6 +65,7 @@
   - `ArTheme` mavzusi `Theme.AppCompat.NoActionBar` ga ulandi (AppCompatDelegate talabi qondirildi).
   - `ArActivity` klassi `FragmentActivity` ga o'tkazildi va `super.onCreate` hamda `onResume/onPause/onDestroy` to'liq himoyalovchi `try-catch` bloklari bilan o'raldi.
   - ProGuard R8 qoidalariga AppCompat va FragmentActivity qoidalari qo'shildi.
+  - `enableImmersiveMode` da `window.insetsController` `setContentView` dan oldin chaqirilganida `mDecor` null bo'lishi va NPE keltirib chiqarishi tuzatildi: `WindowCompat.getInsetsController` `setContentView` dan so'ng xavfsiz chaqiriladigan qilindi va to'liq fallback himoyasi qo'yildi.
 
 ---
 

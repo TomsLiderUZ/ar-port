@@ -16,14 +16,15 @@ import android.view.HapticFeedbackConstants
 import android.view.MotionEvent
 import android.view.View
 import android.view.Window
-import android.view.WindowInsets
-import android.view.WindowInsetsController
 import android.view.WindowManager
 import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.SeekBar
 import android.widget.TextView
 import android.widget.Toast
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.fragment.app.FragmentActivity
 import uz.orbitx.arport.engine.camera.PassthroughCameraManager
 import uz.orbitx.arport.engine.render.ArEngineRenderer
@@ -111,7 +112,6 @@ class ArActivity : FragmentActivity() {
 
             // Fullscreen and Keep Screen On
             window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-            enableImmersiveMode()
 
             rootLayout = FrameLayout(this).apply {
                 setBackgroundColor(Color.BLACK)
@@ -368,6 +368,7 @@ class ArActivity : FragmentActivity() {
             rootLayout.addView(actionRow, actionParams)
 
             setContentView(rootLayout)
+            enableImmersiveMode()
 
             startHudUpdater()
         } catch (e: Throwable) {
@@ -640,21 +641,34 @@ class ArActivity : FragmentActivity() {
     }
 
     private fun enableImmersiveMode() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            window.insetsController?.let { controller ->
-                controller.hide(WindowInsets.Type.statusBars() or WindowInsets.Type.navigationBars())
-                controller.systemBarsBehavior = WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        try {
+            val decor = window?.decorView ?: return
+            WindowCompat.setDecorFitsSystemWindows(window, false)
+            val controller = WindowCompat.getInsetsController(window, decor)
+            controller.systemBarsBehavior =
+                WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            controller.hide(WindowInsetsCompat.Type.systemBars())
+        } catch (_: Throwable) {
+            try {
+                @Suppress("DEPRECATION")
+                window?.decorView?.systemUiVisibility = (
+                    View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                    or View.SYSTEM_UI_FLAG_FULLSCREEN
+                    or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                    or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                    or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                    or View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                )
+            } catch (_: Throwable) {
+                // Ignore any system ui visibility error on custom OEM ROMs
             }
-        } else {
-            @Suppress("DEPRECATION")
-            window.decorView.systemUiVisibility = (
-                View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
-                or View.SYSTEM_UI_FLAG_FULLSCREEN
-                or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-                or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-                or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-                or View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-            )
+        }
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) {
+            enableImmersiveMode()
         }
     }
 
