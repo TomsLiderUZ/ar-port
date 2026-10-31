@@ -118,6 +118,12 @@ class ArActivity : AppCompatActivity() {
         glSurfaceView = GLSurfaceView(this).apply {
             setEGLContextClientVersion(3)
             preserveEGLContextOnPause = true
+            setOnTouchListener { view, event ->
+                if (event.action == android.view.MotionEvent.ACTION_DOWN) {
+                    handleScreenTouch(event.x, event.y, view.width, view.height)
+                }
+                false
+            }
         }
 
         arRenderer = ArEngineRenderer(
@@ -185,6 +191,25 @@ class ArActivity : AppCompatActivity() {
         }
         actionRow.addView(
             modeToggleButton,
+            LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+                setMargins(0, 0, 16, 0)
+            }
+        )
+
+        // Add Window Button (+ Oyna)
+        val addWindowButton = TextView(this).apply {
+            text = "+ Oyna"
+            textSize = 12f
+            setTextColor(Color.WHITE)
+            setPadding(24, 14, 24, 14)
+            background = createGlassBackground()
+            setOnClickListener {
+                performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                addNewDemoWindow()
+            }
+        }
+        actionRow.addView(
+            addWindowButton,
             LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
                 setMargins(0, 0, 16, 0)
             }
@@ -463,6 +488,92 @@ class ArActivity : AppCompatActivity() {
         super.onPause()
         trackingManager?.stop()
         glSurfaceView.onPause()
+    }
+
+    private var demoWindowCounter = 4
+
+    private fun addNewDemoWindow() {
+        val renderer = arRenderer ?: return
+        val count = demoWindowCounter++
+        val isPortrait = (count % 2 == 1)
+        val aspect = if (isPortrait) uz.orbitx.arport.engine.window.WindowAspect.LOCKED_9_16 else uz.orbitx.arport.engine.window.WindowAspect.LOCKED_16_9
+        val width = if (isPortrait) 0.45f else 0.85f
+        val height = if (isPortrait) 0.80f else 0.478f
+
+        val win = renderer.windowManager.createWindow(
+            appId = "demo_app_$count",
+            title = "Ilova #$count",
+            width = width,
+            height = height,
+            aspect = aspect
+        ).apply {
+            contentSurface = uz.orbitx.arport.engine.window.ContentSurface(if (isPortrait) 720 else 1280, if (isPortrait) 1280 else 720)
+        }
+
+        win.contentSurface?.draw { canvas ->
+            canvas.drawColor(android.graphics.Color.parseColor("#E6202228"))
+            val paint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+                color = android.graphics.Color.WHITE
+                textSize = 44f
+                isFakeBoldText = true
+            }
+            canvas.drawText("Ilova #$count", 60f, 100f, paint)
+            paint.textSize = 28f
+            paint.color = android.graphics.Color.parseColor("#8E8E93")
+            paint.isFakeBoldText = false
+            canvas.drawText("Yangi fazoviy oyna (WindowManager3D)", 60f, 160f, paint)
+
+            val boxPaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+                color = android.graphics.Color.parseColor("#330A84FF")
+            }
+            canvas.drawRoundRect(android.graphics.RectF(60f, 220f, 600f, 400f), 24f, 24f, boxPaint)
+            paint.color = android.graphics.Color.parseColor("#0A84FF")
+            paint.textSize = 32f
+            canvas.drawText("Holat: Faol • Z-tartib: ${win.zOrder}", 90f, 310f, paint)
+        }
+    }
+
+    private fun handleScreenTouch(touchX: Float, touchY: Float, width: Int, height: Int) {
+        if (width <= 0 || height <= 0) return
+        val renderer = arRenderer ?: return
+
+        // In normal mode, convert touch to raycast into the 3D scene
+        val tanHalfFovY = kotlin.math.tan(Math.toRadians(65.0 * 0.5)).toFloat()
+        val aspect = width.toFloat() / height.toFloat()
+        val tanHalfFovX = tanHalfFovY * aspect
+
+        val ndcX = (2f * touchX / width) - 1.0f
+        val ndcY = 1.0f - (2f * touchY / height)
+
+        val rayDirX = ndcX * tanHalfFovX
+        val rayDirY = ndcY * tanHalfFovY
+        val rayDirZ = -1.0f
+
+        val hitPair = renderer.windowManager.raycast(0f, 0f, 0f, rayDirX, rayDirY, rayDirZ)
+        if (hitPair != null) {
+            val (hitWin, hitResult) = hitPair
+            glSurfaceView.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+
+            when (hitResult.component) {
+                uz.orbitx.arport.engine.window.SpatialWindow.WindowComponent.CLOSE_BUTTON -> {
+                    renderer.windowManager.closeWindow(hitWin.id)
+                }
+                uz.orbitx.arport.engine.window.SpatialWindow.WindowComponent.MINIMIZE_BUTTON -> {
+                    renderer.windowManager.minimizeWindow(hitWin.id)
+                }
+                uz.orbitx.arport.engine.window.SpatialWindow.WindowComponent.RESIZE_HANDLE -> {
+                    val nextAspect = if (hitWin.aspect == uz.orbitx.arport.engine.window.WindowAspect.LOCKED_16_9) {
+                        uz.orbitx.arport.engine.window.WindowAspect.LOCKED_9_16
+                    } else {
+                        uz.orbitx.arport.engine.window.WindowAspect.LOCKED_16_9
+                    }
+                    hitWin.updateAspect(nextAspect)
+                }
+                else -> {
+                    renderer.windowManager.setFocus(hitWin.id)
+                }
+            }
+        }
     }
 
     override fun onDestroy() {

@@ -3,15 +3,17 @@ package uz.orbitx.arport.engine.render
 import android.graphics.SurfaceTexture
 import android.opengl.GLES30
 import android.opengl.GLSurfaceView
+import android.opengl.Matrix
 import uz.orbitx.arport.engine.stereo.LensProfile
 import uz.orbitx.arport.engine.stereo.StereoRenderer
 import uz.orbitx.arport.engine.tracking.TrackingManager
+import uz.orbitx.arport.engine.window.WindowManager3D
 import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
 
 /**
  * Main OpenGL ES 3.0 renderer orchestrating CameraX Passthrough,
- * 3D world-locked spatial objects, and Stereoscopic barrel distortion post-processing.
+ * 3D spatial windows with WindowManager3D, and Stereoscopic barrel distortion post-processing.
  */
 class ArEngineRenderer(
     var viewMode: String, // "stereo" or "normal"
@@ -26,7 +28,8 @@ class ArEngineRenderer(
         requestRender()
     }
 
-    val worldObjectRenderer = WorldObjectRenderer()
+    val windowManager = WindowManager3D()
+    val windowRenderer = WindowRenderer3D()
 
     val stereoRenderer = StereoRenderer(
         ipdMm = ipdMm,
@@ -39,14 +42,17 @@ class ArEngineRenderer(
     // Cached matrix buffers for GL thread
     private val projectionMatrix = FloatArray(16)
     private val viewMatrix = FloatArray(16)
+    private val vpMatrix = FloatArray(16)
+
+    private var frameCounter = 0
 
     override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
         GLES30.glClearColor(0.0f, 0.0f, 0.0f, 1.0f)
         GLES30.glClearDepthf(1.0f)
 
         passthroughRenderer.onSurfaceCreated()
-        worldObjectRenderer.onSurfaceCreated()
         stereoRenderer.onSurfaceCreated()
+        windowRenderer.onSurfaceCreated()
 
         passthroughRenderer.surfaceTexture?.let { st ->
             onSurfaceTextureReady(st)
@@ -61,6 +67,14 @@ class ArEngineRenderer(
     }
 
     override fun onDrawFrame(gl: GL10?) {
+        frameCounter++
+        if (frameCounter % 30 == 0) {
+            // Periodically refresh system monitor window with live metrics
+            windowManager.allWindows.find { it.appId == "system_monitor" }?.let { win ->
+                windowManager.renderSystemMonitorContent(win, getFps(), getLatencyMs())
+            }
+        }
+
         if (viewMode == "stereo") {
             val eyeW = stereoRenderer.eyeWidth
             val eyeH = stereoRenderer.eyeHeight
@@ -77,7 +91,8 @@ class ArEngineRenderer(
             GLES30.glEnable(GLES30.GL_DEPTH_TEST)
             GLES30.glDepthMask(true)
             trackingManager.getViewMatrix(viewMatrix, -eyeOffsetM)
-            worldObjectRenderer.draw(viewMatrix, projectionMatrix)
+            Matrix.multiplyMM(vpMatrix, 0, projectionMatrix, 0, viewMatrix, 0)
+            windowRenderer.drawWindows(windowManager, viewMatrix, projectionMatrix, vpMatrix)
 
             // 2. Right Eye Pass (Render to Right FBO)
             stereoRenderer.beginRightEye()
@@ -88,7 +103,8 @@ class ArEngineRenderer(
             GLES30.glEnable(GLES30.GL_DEPTH_TEST)
             GLES30.glDepthMask(true)
             trackingManager.getViewMatrix(viewMatrix, eyeOffsetM)
-            worldObjectRenderer.draw(viewMatrix, projectionMatrix)
+            Matrix.multiplyMM(vpMatrix, 0, projectionMatrix, 0, viewMatrix, 0)
+            windowRenderer.drawWindows(windowManager, viewMatrix, projectionMatrix, vpMatrix)
 
             // 3. Post-processing Barrel Distortion Pass
             stereoRenderer.finishAndDistort()
@@ -103,14 +119,15 @@ class ArEngineRenderer(
             GLES30.glDepthMask(false)
             passthroughRenderer.draw(0, 0, screenWidth, screenHeight)
 
-            // 3D World-Locked Object
+            // 3D Spatial Windows
             GLES30.glEnable(GLES30.GL_DEPTH_TEST)
             GLES30.glDepthMask(true)
             GLES30.glViewport(0, 0, screenWidth, screenHeight)
 
             trackingManager.getProjectionMatrix(projectionMatrix, screenWidth, screenHeight, fovYDeg = 65f)
             trackingManager.getViewMatrix(viewMatrix, 0f)
-            worldObjectRenderer.draw(viewMatrix, projectionMatrix)
+            Matrix.multiplyMM(vpMatrix, 0, projectionMatrix, 0, viewMatrix, 0)
+            windowRenderer.drawWindows(windowManager, viewMatrix, projectionMatrix, vpMatrix)
         }
     }
 
@@ -135,7 +152,8 @@ class ArEngineRenderer(
 
     fun release() {
         passthroughRenderer.release()
-        worldObjectRenderer.release()
+        windowRenderer.release()
         stereoRenderer.release()
+        windowManager.release()
     }
 }

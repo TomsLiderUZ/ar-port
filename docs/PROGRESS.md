@@ -15,7 +15,7 @@ Ushbu hujjat har bir bosqich natijasini, qilingan ishlarni va ma'lum muammolarni
 | **5** | AR dvigatel yadrosi: ArActivity, GL, kamera passthrough | ✅ Bajarildi | OpenGL ES 3.0, CameraX OES Zero-Copy rendering, past kechikish sozlamalari, FPS tracker, Liquid Glass HUD |
 | **6** | Harakat kuzatuvi va fazoda qotirish (world-lock) | ✅ Bajarildi | TrackingManager (3DoF/6DoF), kvaternion silliqlash va 16ms bashorat, View/Projection matritsalar, WorldObjectRenderer (fazoda qotuvchi 3D test oynasi), Markazlashtirish (recenter) |
 | **7** | Stereo rejim | ✅ Bajarildi | StereoRenderer (dual FBO, Cardboard v2 barrel distortion, k1/k2, IPD siljishi, markaziy ajratuvchi chiziq, jonli kalibratsiya dialogi, real vaqtda Stereo ↔ Oddiy almashinuvi, dual stereoscopic HUD) |
-| **8** | Fazoviy oyna menejeri va yuza (surface) tizimi | ⏳ Kutilmoqda | - |
+| **8** | Fazoviy oyna menejeri va yuza (surface) tizimi | ✅ Bajarildi | SpatialWindow modeli, WindowManager3D, ContentSurface (offscreen canvas/texture), anti-overlap joylash, z-order, fokus, sleep siyosati, frustum culling, 3 ta sinov oynasi |
 | **9** | Liquid Glass renderer | ⏳ Kutilmoqda | - |
 | **10** | Qo'l kuzatuvi (MediaPipe) va qo'l yoritilishi | ⏳ Kutilmoqda | - |
 | **11** | Gest dvigateli va kiritishni oynaga uzatish | ⏳ Kutilmoqda | - |
@@ -141,4 +141,38 @@ Ushbu hujjat har bir bosqich natijasini, qilingan ishlarni va ma'lum muammolarni
   5. Tekshiruv va sinovlar:
      - JVM unit testlari (`StereoTest.kt` va `QuaternionTest.kt` bo'yicha 10 ta test) muvaffaqiyatli o'tdi (`BUILD SUCCESSFUL`).
      - Flutter testlari (12 ta test) va Flutter statik tahlili (`flutter analyze` — 0 ogohlantirish) to'liq o'tdi.
+     - Debug APK (`flutter build apk --debug`) muvaffaqiyatli yig'ildi (`build\app\outputs\flutter-apk\app-debug.apk`, 215.8 MB).
+
+---
+
+## QADAM 8 Batafsil Hisoboti
+- **Sana:** 2026-10-31
+- **Bajarildi:**
+  1. Fazoviy oyna modeli (`SpatialWindow.kt`):
+     - `position` ($\text{vec3}$), `orientation` (kvaternion), `size` ($W, H$ metrda), `aspect` (16:9 sukut, 9:16 portrait, Free), `state` (Normal, Minimized, Pinned, Fullscreen).
+     - Model matritsasi generatsiyasi ($M = T \cdot R \cdot S$) `Matrix4x4` yordamida.
+     - 3D nur bilan kesishishni tekshirish (ray-plane hit testing) va oyna elementlarini (Close, Minimize, Pin, Title bar, Bottom handle, Resize handle) aniqlash.
+  2. Offscreen yuza tizimi (`ContentSurface.kt`):
+     - Android Canvas va 2D bitmapni to'g'ridan-to'g'ri OpenGL `GL_TEXTURE_2D` ga yuklash tizimi.
+     - Faqat o'zgarganda yangilanuvchi `isDirty` mexanizmi.
+  3. Fazoviy oyna boshqaruvchisi (`WindowManager3D.kt`):
+     - Oynalarni yaratish, yopish, yig'ish (minimize), tiklash va z-tartib bo'yicha fokusni boshqarish.
+     - Qarash yo'nalishida (1.6 metr masofada) ustma-ust tushmaydigan (anti-overlap horizontal/depth stagger) joylashtirish algoritmi.
+     - Maksimal oyna chegarasi (sukut 6 ta) oshganda eng eski faol bo'lmagan oynani "uxlatish" (sleep policy) qoidasi.
+     - Frustum culling: kamera ko'rish maydonidan tashqarida bo'lgan oynalarni renderlashdan va yangilashdan chiqarish.
+     - QADAM 8 talabi bo'yicha 3 ta sinov oynasi:
+       - 1-oyna (16:9): "Tizim Monitori" (FPS, kechikish, datchik holati jonli metrikalari).
+       - 2-oyna (9:16): "Fazoviy Eslatmalar" (iOS ro'yxat va vazifalar).
+       - 3-oyna (16:9): "Media Pleer" (musiqa muqovasi va pleyer boshqaruvi).
+  4. OpenGL ES 3.0 oyna rendereri (`WindowRenderer3D.kt`):
+     - Z-tartib bo'yicha orqadan oldinga chizish (alfa aralashuvi to'g'ri ishlashi uchun).
+     - Squircle yumaloq burchaklarni qirqish shaderi (`discard`).
+     - Fokusdagi oyna uchun jonli `#0A84FF` ko'k nurli ramka, nofaol oynalar uchun shaffof kulrang ramka.
+  5. Render sikli va foydalanuvchi interfeysi (`ArEngineRenderer.kt` va `ArActivity.kt`):
+     - Stereo va oddiy rejimlarda `WindowRenderer3D` integratsiyasi.
+     - Yuqorida yangi oynalar qo'shuvchi "+ Oyna" tugmasi.
+     - Oddiy rejimda ekranni bosish orqali 3D fazodagi oynalarni fokuslash, yopish va o'lchamini almashtirish (touch raycasting).
+  6. Tekshiruv va sinovlar:
+     - JVM unit testlari (`WindowTest.kt`, `StereoTest.kt`, `QuaternionTest.kt` bo'yicha jami 18 ta test) to'liq muvaffaqiyatli o'tdi (`BUILD SUCCESSFUL in 27s`).
+     - Flutter testlari (12 ta test) va Flutter tahlili (`flutter analyze` — 0 ogohlantirish) to'liq o'tdi.
      - Debug APK (`flutter build apk --debug`) muvaffaqiyatli yig'ildi (`build\app\outputs\flutter-apk\app-debug.apk`, 215.8 MB).
