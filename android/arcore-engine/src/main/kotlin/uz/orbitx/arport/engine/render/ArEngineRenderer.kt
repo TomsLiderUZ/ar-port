@@ -76,12 +76,22 @@ class ArEngineRenderer(
             windowManager.allWindows.find { it.appId == "spatial_notes" }?.let { notesWin ->
                 windowManager.appendNotesText(notesWin, text)
             }
+            for ((_, app) in appRegistry.activeNativeApps) {
+                if (app is uz.orbitx.arport.engine.apps.NotesApp) {
+                    app.appendInputText(text)
+                }
+            }
         }
 
         spatialKeyboard.onKeyAction = { action ->
             if (action is KeyAction.Backspace) {
                 windowManager.allWindows.find { it.appId == "spatial_notes" }?.let { notesWin ->
                     windowManager.backspaceNotesText(notesWin)
+                }
+                for ((_, app) in appRegistry.activeNativeApps) {
+                    if (app is uz.orbitx.arport.engine.apps.NotesApp) {
+                        app.backspaceInputText()
+                    }
                 }
             }
         }
@@ -221,6 +231,13 @@ class ArEngineRenderer(
                 windowManager.renderSystemMonitorContent(win, getFps(), getLatencyMs())
             }
         }
+        if (frameCounter % 6 == 0) {
+            for ((_, app) in appRegistry.activeNativeApps) {
+                if (app is uz.orbitx.arport.engine.apps.ClockApp) {
+                    app.tick()
+                }
+            }
+        }
 
         val visibleHands = handTracker?.getVisibleHands() ?: emptyList()
         gestureEngine.processHands(visibleHands, windowManager)
@@ -349,6 +366,21 @@ class ArEngineRenderer(
             }
         }
 
+        // 5. Native ARApp interaction (Content area click/scroll)
+        val nativeApp = appRegistry.activeNativeApps[event.window?.id]
+        if (nativeApp != null && event.component == uz.orbitx.arport.engine.window.SpatialWindow.WindowComponent.CONTENT_AREA) {
+            when (event.type) {
+                GestureType.TAP -> {
+                    nativeApp.onPointerEvent(event.u, event.v, android.view.MotionEvent.ACTION_DOWN)
+                    nativeApp.onPointerEvent(event.u, event.v, android.view.MotionEvent.ACTION_UP)
+                }
+                GestureType.SCROLL, GestureType.DRAG -> {
+                    nativeApp.onPointerEvent(event.u, event.v, android.view.MotionEvent.ACTION_MOVE)
+                }
+                else -> {}
+            }
+        }
+
         // 5. Direct Window Transformations (Drag, Depth, Resize, Controls)
         val handled = inputInjector.handleWindowGesture(event, windowManager)
         if (handled) return
@@ -450,10 +482,7 @@ class ArEngineRenderer(
     }
 
     fun release() {
-        for (web in appRegistry.activeWebSurfaces.values) {
-            web.release()
-        }
-        appRegistry.activeWebSurfaces.clear()
+        appRegistry.release()
 
         releaseNormalFramebuffers()
         passthroughRenderer.release()

@@ -18,6 +18,7 @@ class AppRegistry(private val context: Context? = null) {
 
     private val appsMap = mutableMapOf<String, AppManifest>()
     val activeWebSurfaces = mutableMapOf<String, WebAppSurface>()
+    val activeNativeApps = mutableMapOf<String, ARApp>()
 
     val allApps: List<AppManifest>
         get() = appsMap.values.sortedBy { it.order }
@@ -155,6 +156,27 @@ class AppRegistry(private val context: Context? = null) {
             }
         }
 
+        // If Native App and Context available, instantiate real ARApp surface
+        if (context != null && manifest.type == "native") {
+            try {
+                val nativeApp: ARApp? = when (manifest.id) {
+                    "camera" -> uz.orbitx.arport.engine.apps.CameraApp(manifest)
+                    "notes" -> uz.orbitx.arport.engine.apps.NotesApp(manifest)
+                    "clock" -> uz.orbitx.arport.engine.apps.ClockApp(manifest)
+                    "calendar" -> uz.orbitx.arport.engine.apps.CalendarApp(manifest)
+                    else -> null
+                }
+                if (nativeApp != null) {
+                    val surf = nativeApp.createSurface(context, surfW, surfH)
+                    activeNativeApps[window.id] = nativeApp
+                    window.contentSurface = surf
+                    return window
+                }
+            } catch (_: Exception) {
+                // Safe fallback to placeholder if headless/mocked
+            }
+        }
+
         val surface = ContentSurface(surfW, surfH)
         window.contentSurface = surface
 
@@ -209,6 +231,21 @@ class AppRegistry(private val context: Context? = null) {
             paint.isFakeBoldText = false
             canvas.drawText("Kirish nuqtasi: ${manifest.entry}", 90f, 370f, paint)
         }
+    }
+
+    /**
+     * Releases all active web surfaces and native app surfaces.
+     */
+    fun release() {
+        for ((_, surface) in activeWebSurfaces) {
+            surface.release()
+        }
+        activeWebSurfaces.clear()
+
+        for ((_, app) in activeNativeApps) {
+            app.onDestroy()
+        }
+        activeNativeApps.clear()
     }
 }
 

@@ -752,6 +752,7 @@ class ArActivity : AppCompatActivity() {
                         else -> {
                             renderer.windowManager.setFocus(hitWin.id)
                             renderer.appRegistry.activeWebSurfaces[hitWin.id]?.dispatchTouchEvent(hitResult.u, hitResult.v, event.action)
+                            renderer.appRegistry.activeNativeApps[hitWin.id]?.onPointerEvent(hitResult.u, hitResult.v, event.action)
                         }
                     }
                 }

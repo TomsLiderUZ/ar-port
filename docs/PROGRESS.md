@@ -21,7 +21,7 @@ Ushbu hujjat har bir bosqich natijasini, qilingan ishlarni va ma'lum muammolarni
 | **11** | Gest dvigateli va kiritishni oynaga uzatish | ✅ Bajarildi | GestureEngine (Pinch, Tap, Hold, Drag, Scroll inertsiya, Two-Hand Zoom, Corner Resize, Depth Z, Palm-up, Fist, Swipe), InputInjector (UV->Pixel, MotionEvent), SpatialKeyboard (UZ/EN/RU/Num/Emoji shisha klaviatura), Oddiy rejim teginish fallbacki |
 | **12** | Home panel, dock, ilova reyestri va plagin tizimi | ✅ Bajarildi | AppRegistry (18 ta ilova manifesti), tools/generate_registry.dart, SpatialDock (Vision Pro dock: Home, Recenter, Ovoz, Yorug'lik, Klaviatura, Chiqish), SpatialHomePanel (kategoriya tablari, qidiruv, 3D ilovalar to'ri) |
 | **13** | Web ilovalar, umumiy sessiya va sandbox | ✅ Bajarildi | WebAppSurface (offscreen WebView -> ContentSurface, hardware acceleration, DOM/JS/media), SessionStore (Google/Telegram SSO cookie sinxronizatsiyasi), SandboxPolicy (tashqi intent bloklash, ruxsat etilgan xostlar, toza Chrome UA), SandboxTest unit testlari |
-| **14** | Native ilovalar: Kamera, Qaydlar, Soat, Kalendar | ⏳ Kutilmoqda | - |
+| **14** | Native ilovalar: Kamera, Qaydlar, Soat, Kalendar | ✅ Bajarildi | CameraApp (foto/video, taymer, flip, galereya), NotesApp (SQLite persistence, qidiruv, kategoriya, eksport, klaviatura), ClockApp (Dunyo soati, Budilnik, Sekundomer oraliqlari, Taymer), CalendarApp (Oy/hafta/kun, hodisalar), NativeAppsTest |
 | **15** | AR Sozlamalar ilovasi | ⏳ Kutilmoqda | - |
 | **16** | O'yinlar I: 2D (Tetris, Dino, Flappy, Snake, 2048) + Chess.com | ⏳ Kutilmoqda | - |
 | **17** | O'yinlar II: 3D Table Tennis (botlar) va 3D Shooter | ⏳ Kutilmoqda | - |
@@ -318,5 +318,39 @@ Ushbu hujjat har bir bosqich natijasini, qilingan ishlarni va ma'lum muammolarni
      - `ArEngineRenderer.kt` va `ArActivity.kt` da sensorli/fazoviy amallar kontent yuzasiga yetkaziladi va oyna yopilganda xotira to'liq tozalanadi.
   5. Tekshiruv va sinovlar:
      - JVM unit testlari (`SandboxTest.kt` va avvalgi barcha testlar bo'yicha jami **52 ta test**) to'liq muvaffaqiyatli o'tdi (`BUILD SUCCESSFUL in 40s`).
+     - Flutter testlari (12 ta test) va Flutter tahlili (`flutter analyze` — 0 ogohlantirish) to'liq o'tdi.
+     - Debug APK (`flutter build apk --debug`) muvaffaqiyatli yig'ildi (`build\app\outputs\flutter-apk\app-debug.apk`, 215.89 MB).
+
+---
+
+## QADAM 14 Batafsil Hisoboti
+- **Sana:** 2026-10-31
+- **Bajarildi:**
+  1. Native Kamera ilovasi (`CameraApp.kt`):
+     - Foto olish, video yozish (vaqt indikatori `REC mm:ss`), taymer (Off, 3s, 5s, 10s), kamera almashtirish (Flip) va fleshka rejimi (Auto, On, Off).
+     - Suratga olish chaqnashi (shutter flash) va sandbox (`context.filesDir/ar_port_photos/`) ichiga JPEG saqlash.
+     - Sandboxed galereya ko'rinishi: olingan barcha kadrlarni ko'rish, varaqlash (Oldingi/Keyingi), sana/o'lcham metama'lumotlari va rasmlarni o'chirish.
+  2. Native Fazoviy Qaydlar ilovasi (`NotesApp.kt`, `NotesRepository.kt`):
+     - SQLite ma'lumotlar bazasi (`SqliteNotesRepository`) orqali xavfsiz va doimiy saqlash (ACID tranzaksiyalari bilan); in-memory fallback qo'llab-quvvatlandi.
+     - Qaydlar ro'yxati, kategoriya filtrlari ("Barchasi", "Shaxsiy", "Ish", "G'oyalar") va matn bo'yicha real vaqtda qidiruv (`LIKE %query%`).
+     - Qayd muharriri: sarlavha va matn maydonlari, belgi hisoblagichi, fazoviy suzuvchi klaviatura (`SpatialKeyboard`) orqali jonli yozish va `backspace` integratsiyasi.
+     - Sandboxga eksport qilish (`context.filesDir/exports/notes_export_*.txt`).
+  3. Native Fazoviy Soat ilovasi (`ClockApp.kt`):
+     - 4 ta asosiy bo'lim (Tabs): Dunyo soati, Budilnik, Sekundomer, Taymer.
+     - Dunyo soati: Toshkent (UTC+5), London (UTC+0), Nyu-York (UTC-4), Tokio (UTC+9) uchun raqamli 24h format va harakatlanuvchi millarga ega analog soat disklari.
+     - Budilnik: iOS Liquid Glass switch tugmalari bilan budilniklar ro'yxati.
+     - Sekundomer: katta millisoniyali displey (`00:00.00`), boshlash/to'xtatish, qayta o'rnatish va oraliq davralar (lap splits) jadvali.
+     - Taymer: 1, 5, 10, 25 (Pomodoro), 60 daqiqa tezkor tabletkalari, aylanma neon progress halqasi va orqaga hisoblash.
+  4. Native Fazoviy Kalendar ilovasi (`CalendarApp.kt`):
+     - Oy, hafta va kun ko'rinishlari (`MONTH`, `WEEK`, `DAY`).
+     - Oylararo navigatsiya (Oldingi/Keyingi) va "Bugun" ga tezkor o'tish tugmasi.
+     - Bugungi kun va tanlangan kun Apple neon ko'k nuri bilan ajratilishi, hodisali kunlar ostida rangli nuqtalar (dots).
+     - Tanlangan kun uchun hodisalar yon paneli: hodisa qo'shish, toifalar (Ish, Shaxsiy, Muhim) va o'chirish.
+     - Tizim kalendari bilan sinxronizatsiya tayyorligi (`READ_CALENDAR`).
+  5. Arxitektura va kiritish integratsiyasi:
+     - `AppRegistry.kt` da native ilovalar ishga tushirilganda `createSurface` chaqirilib `activeNativeApps` xaritasiga ulandi va `release()` bilan xotiradan tozalash kiritildi.
+     - `ArEngineRenderer.kt` va `ArActivity.kt` da fazoviy nur teginishi, gestlar (Tap, Drag, Scroll) va klaviatura yozuvi to'g'ridan-to'g'ri faol native ilovalarga uzatildi.
+  6. Tekshiruv va sinovlar:
+     - JVM unit testlari (`NativeAppsTest.kt` va avvalgi barcha testlar bo'yicha jami **59 ta test**) to'liq muvaffaqiyatli o'tdi (`BUILD SUCCESSFUL in 46s`).
      - Flutter testlari (12 ta test) va Flutter tahlili (`flutter analyze` — 0 ogohlantirish) to'liq o'tdi.
      - Debug APK (`flutter build apk --debug`) muvaffaqiyatli yig'ildi (`build\app\outputs\flutter-apk\app-debug.apk`, 215.89 MB).
