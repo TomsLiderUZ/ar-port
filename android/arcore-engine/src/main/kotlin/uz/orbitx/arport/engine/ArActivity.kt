@@ -10,18 +10,22 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.view.Gravity
+import android.view.HapticFeedbackConstants
 import android.view.View
 import android.view.WindowInsets
 import android.view.WindowInsetsController
 import android.view.WindowManager
 import android.widget.FrameLayout
+import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import uz.orbitx.arport.engine.camera.PassthroughCameraManager
 import uz.orbitx.arport.engine.render.ArEngineRenderer
+import uz.orbitx.arport.engine.tracking.TrackingManager
 
 /**
- * Native Activity hosting the OpenGL ES 3.0 rendering cycle and CameraX passthrough.
+ * Native Activity hosting the OpenGL ES 3.0 rendering cycle, CameraX passthrough,
+ * and 3DoF/6DoF spatial motion tracking.
  */
 class ArActivity : AppCompatActivity() {
 
@@ -67,6 +71,7 @@ class ArActivity : AppCompatActivity() {
     private var lensProfile: String = "cardboard_v2"
 
     private lateinit var glSurfaceView: GLSurfaceView
+    private var trackingManager: TrackingManager? = null
     private var arRenderer: ArEngineRenderer? = null
     private var cameraManager: PassthroughCameraManager? = null
 
@@ -95,7 +100,11 @@ class ArActivity : AppCompatActivity() {
             setBackgroundColor(Color.BLACK)
         }
 
-        // 1. OpenGL ES 3.0 Surface View
+        // 1. Initialize Motion Tracking Manager
+        val tm = TrackingManager(this)
+        trackingManager = tm
+
+        // 2. OpenGL ES 3.0 Surface View
         glSurfaceView = GLSurfaceView(this).apply {
             setEGLContextClientVersion(3)
             preserveEGLContextOnPause = true
@@ -103,6 +112,8 @@ class ArActivity : AppCompatActivity() {
 
         arRenderer = ArEngineRenderer(
             viewMode = viewMode,
+            trackingManager = tm,
+            ipdMm = ipdMm,
             onSurfaceTextureReady = { surfaceTexture ->
                 runOnUiThread {
                     startCameraStream(surfaceTexture)
@@ -114,14 +125,14 @@ class ArActivity : AppCompatActivity() {
         )
 
         glSurfaceView.setRenderer(arRenderer)
-        glSurfaceView.renderMode = GLSurfaceView.RENDERMODE_WHEN_DIRTY
+        glSurfaceView.renderMode = GLSurfaceView.RENDERMODE_CONTINUOUSLY
 
         rootLayout.addView(
             glSurfaceView,
             FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT)
         )
 
-        // 2. Liquid Glass Debug HUD (Top-Left)
+        // 3. Liquid Glass Debug HUD (Top-Left)
         hudTextView = TextView(this).apply {
             textSize = 12f
             setTextColor(Color.WHITE)
@@ -143,7 +154,36 @@ class ArActivity : AppCompatActivity() {
         }
         rootLayout.addView(hudTextView, hudParams)
 
-        // 3. Fallback Close Button (Top-Right)
+        // 4. Top-Right Action Controls (Recenter + Close Buttons)
+        val actionRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+
+        // Recenter (Markazlashtirish) Button
+        val recenterButton = TextView(this).apply {
+            text = "🎯 Markazlashtirish"
+            textSize = 12f
+            setTextColor(Color.WHITE)
+            setPadding(24, 14, 24, 14)
+            background = GradientDrawable().apply {
+                setColor(Color.parseColor("#991C1C1E"))
+                cornerRadius = 24f
+                setStroke(1, Color.parseColor("#44FFFFFF"))
+            }
+            setOnClickListener {
+                performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                arRenderer?.recenter()
+            }
+        }
+        actionRow.addView(
+            recenterButton,
+            LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+                setMargins(0, 0, 16, 0)
+            }
+        )
+
+        // Fallback Close Button
         val closeButton = TextView(this).apply {
             text = "✕"
             textSize = 16f
@@ -156,12 +196,16 @@ class ArActivity : AppCompatActivity() {
             }
             setOnClickListener { finish() }
         }
+        actionRow.addView(closeButton, LinearLayout.LayoutParams(72, 72))
 
-        val closeParams = FrameLayout.LayoutParams(72, 72).apply {
+        val actionParams = FrameLayout.LayoutParams(
+            FrameLayout.LayoutParams.WRAP_CONTENT,
+            FrameLayout.LayoutParams.WRAP_CONTENT
+        ).apply {
             gravity = Gravity.TOP or Gravity.END
             setMargins(0, 32, 32, 0)
         }
-        rootLayout.addView(closeButton, closeParams)
+        rootLayout.addView(actionRow, actionParams)
 
         setContentView(rootLayout)
 
@@ -188,11 +232,12 @@ class ArActivity : AppCompatActivity() {
                 if (!isHudActive) return
                 val fps = arRenderer?.getFps() ?: 0f
                 val latency = arRenderer?.getLatencyMs() ?: 0f
+                val trackingLabel = trackingManager?.getTrackingModeLabel() ?: "3DoF"
                 val modeLabel = if (viewMode == "stereo") "Stereo (IPD: ${ipdMm}mm)" else "Oddiy"
 
                 hudTextView.text = String.format(
-                    "AR Port • %s\nFPS: %.1f | Kechikish: %.1f ms | %s",
-                    modeLabel, fps, latency, resolution
+                    "AR Port • %s | %s\nFPS: %.1f | Kechikish: %.1f ms | %s",
+                    modeLabel, trackingLabel, fps, latency, resolution
                 )
                 mainHandler.postDelayed(this, 500)
             }
@@ -222,11 +267,13 @@ class ArActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         enableImmersiveMode()
+        trackingManager?.start()
         glSurfaceView.onResume()
     }
 
     override fun onPause() {
         super.onPause()
+        trackingManager?.stop()
         glSurfaceView.onPause()
     }
 
@@ -234,6 +281,7 @@ class ArActivity : AppCompatActivity() {
         super.onDestroy()
         isHudActive = false
         mainHandler.removeCallbacksAndMessages(null)
+        trackingManager?.stop()
         cameraManager?.stopCamera()
         arRenderer?.release()
     }

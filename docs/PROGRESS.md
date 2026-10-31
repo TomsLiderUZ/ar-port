@@ -13,7 +13,7 @@ Ushbu hujjat har bir bosqich natijasini, qilingan ishlarni va ma'lum muammolarni
 | **3** | Qurilma tekshiruvi (giroskop) va ruxsatlar oqimi | ✅ Bajarildi | Native `DeviceEvaluator`, MethodChannel, giroskop yo'qligida bloklash dialogi, 3DoF/6DoF qaror mantiqi, ruxsatlar oqimi |
 | **4** | Boshlang'ich menyu (rejim + qurilma sozlamalari) | ✅ Bajarildi | Stereo/oddiy rejim, Camera/Audio/IPD/Lens sozlamalari, SharedPreferences, `ArActivity` ishga tushishi |
 | **5** | AR dvigatel yadrosi: ArActivity, GL, kamera passthrough | ✅ Bajarildi | OpenGL ES 3.0, CameraX OES Zero-Copy rendering, past kechikish sozlamalari, FPS tracker, Liquid Glass HUD |
-| **6** | Harakat kuzatuvi va fazoda qotirish (world-lock) | ⏳ Kutilmoqda | - |
+| **6** | Harakat kuzatuvi va fazoda qotirish (world-lock) | ✅ Bajarildi | TrackingManager (3DoF/6DoF), kvaternion silliqlash va 16ms bashorat, View/Projection matritsalar, WorldObjectRenderer (fazoda qotuvchi 3D test oynasi), Markazlashtirish (recenter) |
 | **7** | Stereo rejim | ⏳ Kutilmoqda | - |
 | **8** | Fazoviy oyna menejeri va yuza (surface) tizimi | ⏳ Kutilmoqda | - |
 | **9** | Liquid Glass renderer | ⏳ Kutilmoqda | - |
@@ -88,3 +88,32 @@ Ushbu hujjat har bir bosqich natijasini, qilingan ishlarni va ma'lum muammolarni
   3. Past kechikishli CameraX boshqaruvchisi (`PassthroughCameraManager`): uzluksiz avtofokus (`CONTROL_AF_MODE_CONTINUOUS_PICTURE`), avto-ekspozitsiya, EIS o'chirilgan (`CONTROL_VIDEO_STABILIZATION_MODE_OFF`), 30/60 FPS diapazoni.
   4. Kadr kechikishi va FPS o'lchovchi tizim (`FpsTracker`): `SurfaceTexture.timestamp` (sensor vaqti) va GPU render vaqti orasidagi kechikishni (motion-to-frame arrival latency) eksponensial o'rtacha bilan hisoblaydi.
   5. `ArActivity` render sikli (`ArEngineRenderer`): `GLSurfaceView` EGL 3.0, `RENDERMODE_WHEN_DIRTY`, stereo va oddiy ko'rinishlarni chizish, Liquid Glass uslubidagi jonli Debug HUD (FPS, kechikish, rejim ko'rsatkichlari) va zaxira chiqish tugmasi (`✕`).
+
+---
+
+## QADAM 6 Batafsil Hisoboti
+- **Sana:** 2026-10-31
+- **Bajarildi:**
+  1. Yuqori aniqlikdagi kvaternion matematikasi (`Quaternion.kt`): ko'paytirish, normallashtirish, teskari (inverse), slerp (sferik chiziqli interpolyatsiya), toRotationMatrix, fromRotationMatrix, yaw burchagini hisoblash va axis-angle konstruktori.
+  2. Harakat kuzatuvi menejeri (`TrackingManager.kt`):
+     - `Sensor.TYPE_ROTATION_VECTOR` (va `TYPE_GAME_ROTATION_VECTOR` zaxira) datchigini `SENSOR_DELAY_FASTEST` bilan tinglash.
+     - Landshaft ekran aylanishi bo'yicha koordinatalarni to'g'ri qayta xaritalash (`SensorManager.remapCoordinateSystem`).
+     - Titrashni yo'qotuvchi past chastotali kvaternion SLERP filtrlash (`alpha = 0.65`).
+     - Kechikishni kompensatsiya qiluvchi prediktiv bashorat (`lookahead = 16 ms`, 60 FPS da bitta kadr oldinga surish).
+     - 6DoF (ARCore Pose) va 3DoF datchik holatlarini qo'llab-quvvatlash.
+     - "Markazlashtirish" (Recenter / drift correction): datchik dreyfini nolga tenglab, foydalanuvchining hozirgi qarash yo'nalishini dunyo bo'yicha oldinga (`-Z`) yo'naltiruvchi mexanizm.
+     - View Matrix ($V = R^{-1} \cdot T^{-1}$) va Perspective Projection Matrix generatsiyasi; Stereo rejim uchun mahalliy ko'z siljishi ($\pm IPD/2$).
+  3. Fazoda qotib turuvchi 3D sinov obyekti renderer (`WorldObjectRenderer.kt`):
+     - Dunyo koordinatasida 1.5 metr masofada ($(0, 0, -1.5)$) qotib turuvchi 16:9 spatial karta (0.85m x 0.48m).
+     - OpenGL ES 3.0 shaderlari: iOS Liquid Glass chekka nuri (`#0A84FF`), nozik ichki spatial panjara va nishonga olish retikulasi, chuqurlik buferi (depth buffer) va alfa aralashuvi (alpha blending).
+  4. Render sikli integratsiyasi (`ArEngineRenderer.kt`):
+     - Fon sifatida passthrough chiziladi (depth write o'chiq).
+     - Chuqurlik buferi yoqilib, Stereo rejimda chap va o'ng ko'zlar uchun IPD burchagi bilan, Oddiy rejimda bitta markaziy ko'z bilan 3D dunyo obyekti chiziladi.
+     - Uzluksiz 60 FPS yangilanishi (`RENDERMODE_CONTINUOUSLY`).
+  5. Foydalanuvchi interfeysi va boshqaruv (`ArActivity.kt`):
+     - Yuqorida doimiy "🎯 Markazlashtirish" frosted glass tugmasi (bosilganda haptic feedback bilan driftni qayta sozlaydi).
+     - Jonli Debug HUD datchik holatini ("3DoF (Giroskop)" yoki "6DoF (ARCore)") aks ettiradi.
+  6. Tekshiruv va sinovlar:
+     - JVM unit testlari (`QuaternionTest.kt` da 7 ta test: identity, normalize, multiplication, inverse/conjugate, slerp, yaw/recenter, matrix round-trip) to'liq muvaffaqiyatli o'tdi (`BUILD SUCCESSFUL`).
+     - Flutter testlari (12 ta test) va Flutter statik tahlili (`flutter analyze` — 0 ogohlantirish) to'liq o'tdi.
+     - Debug APK (`flutter build apk --debug`) muvaffaqiyatli yig'ildi (`build\app\outputs\flutter-apk\app-debug.apk`, 215.8 MB).

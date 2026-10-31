@@ -42,5 +42,8 @@ dependencies {
 
     // MediaPipe Tasks Vision
     implementation("com.google.mediapipe:tasks-vision:0.10.14")
+
+    // Unit Testing
+    testImplementation("junit:junit:4.13.2")
 }
 
