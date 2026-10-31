@@ -2,6 +2,7 @@ package uz.orbitx.arport.engine.registry
 
 import android.content.Context
 import org.json.JSONObject
+import uz.orbitx.arport.engine.web.WebAppSurface
 import uz.orbitx.arport.engine.window.ContentSurface
 import uz.orbitx.arport.engine.window.SpatialWindow
 import uz.orbitx.arport.engine.window.WindowAspect
@@ -16,6 +17,7 @@ import java.io.InputStreamReader
 class AppRegistry(private val context: Context? = null) {
 
     private val appsMap = mutableMapOf<String, AppManifest>()
+    val activeWebSurfaces = mutableMapOf<String, WebAppSurface>()
 
     val allApps: List<AppManifest>
         get() = appsMap.values.sortedBy { it.order }
@@ -127,15 +129,54 @@ class AppRegistry(private val context: Context? = null) {
             aspect = aspect
         )
 
-        // Attach placeholder content surface until app-specific renderer attaches in later steps
         val isPortrait = (aspect == WindowAspect.LOCKED_9_16)
         val surfW = if (isPortrait) 720 else 1280
         val surfH = if (isPortrait) 1280 else 720
+
+        // If Web App and Context available, instantiate real offscreen WebAppSurface
+        if (context != null && manifest.type == "web") {
+            try {
+                val showNav = (manifest.id == "google")
+                val webSurface = WebAppSurface(
+                    context = context,
+                    manifest = manifest,
+                    surfaceWidth = surfW,
+                    surfaceHeight = surfH,
+                    showNavigationBar = showNav
+                )
+                webSurface.onOpenExternalUrl = { externalUrl ->
+                    openInBrowser(externalUrl, windowManager)
+                }
+                activeWebSurfaces[window.id] = webSurface
+                window.contentSurface = webSurface.contentSurface
+                return window
+            } catch (_: Exception) {
+                // Safe fallback to placeholder if headless/mocked
+            }
+        }
+
         val surface = ContentSurface(surfW, surfH)
         window.contentSurface = surface
 
         renderAppPlaceholderContent(window, manifest)
         return window
+    }
+
+    /**
+     * Opens an external link inside AR Port's internal Google Browser window.
+     */
+    fun openInBrowser(url: String, windowManager: WindowManager3D): SpatialWindow? {
+        val browserWin = windowManager.activeWindows.find { it.appId == "google" }
+        if (browserWin != null) {
+            windowManager.setFocus(browserWin.id)
+            activeWebSurfaces[browserWin.id]?.loadUrl(url)
+            return browserWin
+        }
+        val newWin = launchApp("google", windowManager)
+        newWin?.let {
+            activeWebSurfaces[it.id]?.loadUrl(url)
+        }
+        return newWin
     }
 
     private fun renderAppPlaceholderContent(window: SpatialWindow, manifest: AppManifest) {

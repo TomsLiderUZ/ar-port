@@ -30,6 +30,7 @@ import javax.microedition.khronos.opengles.GL10
  * and Stereoscopic barrel distortion post-processing.
  */
 class ArEngineRenderer(
+    val context: android.content.Context? = null,
     var viewMode: String, // "stereo" or "normal"
     val trackingManager: TrackingManager,
     var ipdMm: Double = 63.0,
@@ -51,7 +52,7 @@ class ArEngineRenderer(
     val gestureEngine = GestureEngine()
     val inputInjector = InputInjector()
     val spatialKeyboard = SpatialKeyboard()
-    val appRegistry = AppRegistry()
+    val appRegistry = AppRegistry(context)
     val spatialDock = SpatialDock()
     val spatialHomePanel = SpatialHomePanel(appRegistry)
 
@@ -62,6 +63,9 @@ class ArEngineRenderer(
     var onExitRequested: (() -> Unit)? = null
 
     init {
+        context?.let {
+            uz.orbitx.arport.engine.session.SessionStore.getInstance().init(it)
+        }
         gestureEngine.setListener(object : GestureListener {
             override fun onGestureEvent(event: GestureEvent) {
                 handleGestureEvent(event)
@@ -330,11 +334,26 @@ class ArEngineRenderer(
             return
         }
 
-        // 4. Direct Window Transformations (Drag, Depth, Resize, Controls)
+        // 4. WebAppSurface interaction (Content area click/scroll)
+        val webSurface = appRegistry.activeWebSurfaces[event.window?.id]
+        if (webSurface != null && event.component == uz.orbitx.arport.engine.window.SpatialWindow.WindowComponent.CONTENT_AREA) {
+            when (event.type) {
+                GestureType.TAP -> {
+                    webSurface.dispatchTouchEvent(event.u, event.v, android.view.MotionEvent.ACTION_DOWN)
+                    webSurface.dispatchTouchEvent(event.u, event.v, android.view.MotionEvent.ACTION_UP)
+                }
+                GestureType.SCROLL, GestureType.DRAG -> {
+                    webSurface.dispatchTouchEvent(event.u, event.v, android.view.MotionEvent.ACTION_MOVE)
+                }
+                else -> {}
+            }
+        }
+
+        // 5. Direct Window Transformations (Drag, Depth, Resize, Controls)
         val handled = inputInjector.handleWindowGesture(event, windowManager)
         if (handled) return
 
-        // 5. System-level Gestures
+        // 6. System-level Gestures
         when (event.type) {
             GestureType.PALM_UP -> {
                 toggleHomePanel()
@@ -431,6 +450,11 @@ class ArEngineRenderer(
     }
 
     fun release() {
+        for (web in appRegistry.activeWebSurfaces.values) {
+            web.release()
+        }
+        appRegistry.activeWebSurfaces.clear()
+
         releaseNormalFramebuffers()
         passthroughRenderer.release()
         windowRenderer.release()

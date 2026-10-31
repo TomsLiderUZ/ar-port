@@ -129,6 +129,7 @@ class ArActivity : AppCompatActivity() {
         }
 
         arRenderer = ArEngineRenderer(
+            context = this,
             viewMode = viewMode,
             trackingManager = tm,
             ipdMm = ipdMm,
@@ -750,6 +751,7 @@ class ArActivity : AppCompatActivity() {
                         }
                         else -> {
                             renderer.windowManager.setFocus(hitWin.id)
+                            renderer.appRegistry.activeWebSurfaces[hitWin.id]?.dispatchTouchEvent(hitResult.u, hitResult.v, event.action)
                         }
                     }
                 }

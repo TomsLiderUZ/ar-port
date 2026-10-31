@@ -20,7 +20,7 @@ Ushbu hujjat har bir bosqich natijasini, qilingan ishlarni va ma'lum muammolarni
 | **10** | Qo'l kuzatuvi (MediaPipe) va qo'l yoritilishi | ✅ Bajarildi | HandTracker (MediaPipe Tasks Vision GPU/CPU, 21 landmark), OneEuroFilter (adaptiv silliqlash), HandRenderer (qo'l usti aurosi, skelet suyaklari, 3D hand ray, oynalar ustida hover yoritilishi, 200ms hold loss siyosati) |
 | **11** | Gest dvigateli va kiritishni oynaga uzatish | ✅ Bajarildi | GestureEngine (Pinch, Tap, Hold, Drag, Scroll inertsiya, Two-Hand Zoom, Corner Resize, Depth Z, Palm-up, Fist, Swipe), InputInjector (UV->Pixel, MotionEvent), SpatialKeyboard (UZ/EN/RU/Num/Emoji shisha klaviatura), Oddiy rejim teginish fallbacki |
 | **12** | Home panel, dock, ilova reyestri va plagin tizimi | ✅ Bajarildi | AppRegistry (18 ta ilova manifesti), tools/generate_registry.dart, SpatialDock (Vision Pro dock: Home, Recenter, Ovoz, Yorug'lik, Klaviatura, Chiqish), SpatialHomePanel (kategoriya tablari, qidiruv, 3D ilovalar to'ri) |
-| **13** | Web ilovalar, umumiy sessiya va sandbox | ⏳ Kutilmoqda | - |
+| **13** | Web ilovalar, umumiy sessiya va sandbox | ✅ Bajarildi | WebAppSurface (offscreen WebView -> ContentSurface, hardware acceleration, DOM/JS/media), SessionStore (Google/Telegram SSO cookie sinxronizatsiyasi), SandboxPolicy (tashqi intent bloklash, ruxsat etilgan xostlar, toza Chrome UA), SandboxTest unit testlari |
 | **14** | Native ilovalar: Kamera, Qaydlar, Soat, Kalendar | ⏳ Kutilmoqda | - |
 | **15** | AR Sozlamalar ilovasi | ⏳ Kutilmoqda | - |
 | **16** | O'yinlar I: 2D (Tetris, Dino, Flappy, Snake, 2048) + Chess.com | ⏳ Kutilmoqda | - |
@@ -290,5 +290,33 @@ Ushbu hujjat har bir bosqich natijasini, qilingan ishlarni va ma'lum muammolarni
      - HUD paneliga "🏠 Home" tezkor tugmasi qo'shildi.
   5. Tekshiruv va sinovlar:
      - JVM unit testlari (`RegistryTest.kt`, `GestureTest.kt`, `HandTest.kt`, `SpringTest.kt`, `WindowTest.kt`, `StereoTest.kt`, `QuaternionTest.kt` bo'yicha jami **43 ta test**) to'liq muvaffaqiyatli o'tdi (`BUILD SUCCESSFUL in 57s`).
+     - Flutter testlari (12 ta test) va Flutter tahlili (`flutter analyze` — 0 ogohlantirish) to'liq o'tdi.
+     - Debug APK (`flutter build apk --debug`) muvaffaqiyatli yig'ildi (`build\app\outputs\flutter-apk\app-debug.apk`, 215.89 MB).
+
+---
+
+## QADAM 13 Batafsil Hisoboti
+- **Sana:** 2026-10-31
+- **Bajarildi:**
+  1. Umumiy sessiya va SSO menejeri (`SessionStore.kt`):
+     - `android.webkit.CookieManager` va `WebStorage` orqali ilovalararo sessiyalar sinxronizatsiyasi.
+     - 3-tomon cookie fayllari yoqildi (`setAcceptThirdPartyCookies`), bu Google, YouTube, Telegram va Spotify o'rtasida umumiy kirish (Single Sign-On) ta'minlaydi.
+     - Xavfsiz `flush()` mexanizmi va sessiya guruhlarini boshqarish (`google`, `telegram`, `meta`).
+  2. Qat'iy Sandbox va xavfsizlik siyosati (`SandboxPolicy.kt`):
+     - Tashqi intent sxemalari qat'iy bloklandi (`intent://`, `tg://`, `instagram://`, `market://`, `vnd.youtube://`, `tel:`, `sms:` va boshqalar) — foydalanuvchi AR tizimidan tashqariga (tashqi brauzer yoki ilovaga) chiqib ketmaydi.
+     - Manifestdagi `allowedHosts` bo'yicha URL tekshiruvi (wildcard domenlar, masalan: `*.google.com`, `*.youtube.com`).
+     - Ruxsat etilmagan tashqi havolalar ichki Google Qidiruv / Brauzer oynasiga yo'naltiriladi (`NavigationAction.OPEN_IN_BROWSER_TAB`).
+     - Foydalanuvchi agenti (User-Agent) tozalash: Google OAuth 403 `disallowed_useragent` xatoligini bartaraf etish uchun `; wv` va `Version/4.0` identifikatorlari tozalanib, toza Chrome Desktop/Mobile UA o'rnatiladi.
+  3. Web ilovalar yuzasi (`WebAppSurface.kt`):
+     - Offscreen Android `WebView` yaratilib, uning chizilgan kontenti `ContentSurface` ga uzatiladi.
+     - WebSettings to'liq sozlangan: JavaScript, DOM Storage, Database, media autoplay (foydalanuvchi imo-ishorasisiz), keng ko'rish maydoni.
+     - Fazoviy UV koordinatalardan Android `MotionEvent` larni WebView ga uzatish (bosish, aylantirish, matn kiritish).
+     - Yangi oyna so'rovlari (`onCreateWindow` / `target="_blank"`) ichki boshqariladi.
+     - Google Brauzer ilovasi uchun yuqori shisha navigatsiya paneli (Orqaga, Oldinga, Yangilash, URL qatori, yuklanish progress-bari).
+  4. AppRegistry va Render integratsiyasi:
+     - `AppRegistry.kt` da web ilovalar ishga tushirilganda `WebAppSurface` avtomatik ulanadi va tashqi havolalar ichki brauzer oynasiga yo'naltiriladi.
+     - `ArEngineRenderer.kt` va `ArActivity.kt` da sensorli/fazoviy amallar kontent yuzasiga yetkaziladi va oyna yopilganda xotira to'liq tozalanadi.
+  5. Tekshiruv va sinovlar:
+     - JVM unit testlari (`SandboxTest.kt` va avvalgi barcha testlar bo'yicha jami **52 ta test**) to'liq muvaffaqiyatli o'tdi (`BUILD SUCCESSFUL in 40s`).
      - Flutter testlari (12 ta test) va Flutter tahlili (`flutter analyze` — 0 ogohlantirish) to'liq o'tdi.
      - Debug APK (`flutter build apk --debug`) muvaffaqiyatli yig'ildi (`build\app\outputs\flutter-apk\app-debug.apk`, 215.89 MB).
