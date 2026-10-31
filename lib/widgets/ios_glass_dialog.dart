@@ -79,72 +79,75 @@ class IosGlassDialog extends StatelessWidget {
         ? Colors.white.withValues(alpha: 0.15)
         : Colors.white.withValues(alpha: 0.6);
 
-    return Center(
-      child: Container(
-        width: 310,
-        margin: const EdgeInsets.symmetric(horizontal: 24),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(AppTheme.dialogRadius),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: isDark ? 0.6 : 0.2),
-              blurRadius: 32,
-              offset: const Offset(0, 16),
-            ),
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(AppTheme.dialogRadius),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 28, sigmaY: 28),
-            child: Container(
-              decoration: BoxDecoration(
-                color: glassTint,
-                borderRadius: BorderRadius.circular(AppTheme.dialogRadius),
-                border: Border.all(color: borderColor, width: 1.0),
+    return Material(
+      type: MaterialType.transparency,
+      child: Center(
+        child: Container(
+          width: 310,
+          margin: const EdgeInsets.symmetric(horizontal: 24),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(AppTheme.dialogRadius),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: isDark ? 0.6 : 0.2),
+                blurRadius: 32,
+                offset: const Offset(0, 16),
               ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 24, 20, 16),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          title,
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: -0.4,
-                            color: isDark ? Colors.white : Colors.black,
-                          ),
-                        ),
-                        if (message != null) ...[
-                          const SizedBox(height: 8),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(AppTheme.dialogRadius),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 28, sigmaY: 28),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: glassTint,
+                  borderRadius: BorderRadius.circular(AppTheme.dialogRadius),
+                  border: Border.all(color: borderColor, width: 1.0),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 24, 20, 16),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
                           Text(
-                            message!,
+                            title,
                             textAlign: TextAlign.center,
                             style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w400,
-                              letterSpacing: -0.2,
-                              color: isDark ? AppTheme.darkSecondaryLabel : AppTheme.lightSecondaryLabel,
-                              height: 1.35,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: -0.4,
+                              color: isDark ? Colors.white : Colors.black,
                             ),
                           ),
+                          if (message != null) ...[
+                            const SizedBox(height: 8),
+                            Text(
+                              message!,
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w400,
+                                letterSpacing: -0.2,
+                                color: isDark ? AppTheme.darkSecondaryLabel : AppTheme.lightSecondaryLabel,
+                                height: 1.35,
+                              ),
+                            ),
+                          ],
+                          if (content != null) ...[
+                            const SizedBox(height: 12),
+                            content!,
+                          ],
                         ],
-                        if (content != null) ...[
-                          const SizedBox(height: 12),
-                          content!,
-                        ],
-                      ],
+                      ),
                     ),
-                  ),
-                  Divider(height: 0.5, thickness: 0.5, color: theme.dividerColor),
-                  _buildActions(context, isDark),
-                ],
+                    Divider(height: 0.5, thickness: 0.5, color: theme.dividerColor),
+                    _buildActions(context, isDark),
+                  ],
+                ),
               ),
             ),
           ),
@@ -169,6 +172,7 @@ class IosGlassDialog extends StatelessWidget {
     }
 
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
         for (int i = 0; i < actions.length; i++) ...[
           _buildActionButton(context, actions[i], isDark),
@@ -190,11 +194,12 @@ class IosGlassDialog extends StatelessWidget {
       textColor = isDark ? Colors.white : Colors.black;
     }
 
-    return InkWell(
+    return GestureDetector(
       onTap: () {
         HapticFeedback.lightImpact();
         action.onPressed();
       },
+      behavior: HitTestBehavior.opaque,
       child: Container(
         height: 48,
         alignment: Alignment.center,
@@ -211,4 +216,3 @@ class IosGlassDialog extends StatelessWidget {
     );
   }
 }
-

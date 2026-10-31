@@ -10,7 +10,7 @@ Ushbu hujjat har bir bosqich natijasini, qilingan ishlarni va ma'lum muammolarni
 |---|---|---|---|
 | **1** | Muhit, loyiha skeleti va hujjatlar | ✅ Bajarildi | Flutter 3.47.9, JDK 17, Android SDK 35/36/37 o'rnatildi, arcore-engine moduli ulandi |
 | **2** | Flutter UI qobig'i: tema, iOS dizayn tizimi, Splash | ✅ Bajarildi | iOS UI komponentlari, Dynamic color/tizim temasi, Splash (≤1.2s), L10n (`uz`, `ru`, `en`) |
-| **3** | Qurilma tekshiruvi (giroskop) va ruxsatlar oqimi | ⏳ Kutilmoqda | - |
+| **3** | Qurilma tekshiruvi (giroskop) va ruxsatlar oqimi | ✅ Bajarildi | Native `DeviceEvaluator`, MethodChannel, giroskop yo'qligida bloklash dialogi, 3DoF/6DoF qaror mantiqi, ruxsatlar oqimi |
 | **4** | Boshlang'ich menyu (rejim + qurilma sozlamalari) | ⏳ Kutilmoqda | - |
 | **5** | AR dvigatel yadrosi: ArActivity, GL, kamera passthrough | ⏳ Kutilmoqda | - |
 | **6** | Harakat kuzatuvi va fazoda qotirish (world-lock) | ⏳ Kutilmoqda | - |
@@ -49,7 +49,7 @@ Ushbu hujjat har bir bosqich natijasini, qilingan ishlarni va ma'lum muammolarni
 ## QADAM 2 Batafsil Hisoboti
 - **Sana:** 2026-10-31
 - **Bajarildi:**
-  1. Tizim temasi (qora/och) va `dynamic_color` (accent rangi) bilan avtomatik moslashuvchi iOS dizayn mavzusi (`AppTheme`) yaratildi; zaxira rang `#0A84FF`.
+  1. Tizim temasi (qora/och) va `dynamic_color` (Material You) bilan avtomatik moslashuvchi, zaxirada `#0A84FF` (iOS ko'k) rangidan foydalanuvchi to'liq iOS mavzusi (`AppTheme`) yaratildi.
   2. Qayta ishlatiladigan to'liq iOS komponentlar to'plami yaratildi:
      - `IosLargeTitle`: iOS uslubidagi katta sarlavha.
      - `IosCard`: 22 dp burchakli yumaloq karta.
@@ -62,3 +62,24 @@ Ushbu hujjat har bir bosqich natijasini, qilingan ishlarni va ma'lum muammolarni
   3. Splash ekrani yaratildi (`≤1.2 s`, 1000 ms animatsiyali spatial logo + matn, avtomatik Launcher ekraniga o'tish).
   4. Lokalizatsiya tizimi (`l10n.yaml`) ulandi; O'zbekcha (`uz` asosiy), ruscha (`ru`), inglizcha (`en`) ARB lug'atlari yaratildi.
   5. Widget testlari yozildi va `flutter test` orqali to'liq tasdiqlandi.
+
+---
+
+## QADAM 3 Batafsil Hisoboti
+- **Sana:** 2026-10-31
+- **Bajarildi:**
+  1. Native apparat tahlilchisi `DeviceEvaluator` (`arcore-engine` moduli) yaratildi:
+     - Giroskop / Rotation Vector (`SensorManager`)
+     - Orqa kamera (`CameraManager`)
+     - ARCore 6DoF mavjudligi (`ArCoreApk.checkAvailability`)
+     - OpenGL ES 3.0+ qo'llab-quvvatlanishi (`reqGlEsVersion >= 0x00030000`)
+     - RAM hajmi va past xotirali qurilma tekshiruvi (`ActivityManager.MemoryInfo`).
+  2. `MainActivity.kt` da `uz.orbitx.arport/device_capability` MethodChannel kanali ulandi.
+  3. Dart qatlamida `DeviceCapabilities`, `DeviceCapabilityChannel`, hamda TZ 4.2 talablariga to'liq mos keluvchi `DeviceCheckController` va `DeviceCheckResult` yaratildi:
+     - Giroskop yo'q bo'lsa: `isBlocked = true`, `BlockReason.gyroscopeMissing`, xabar va 'Chiqish' tugmali dialog.
+     - Giroskop bor, lekin ARCore yo'q bo'lsa: 3DoF rejimi, kichik ogohlantirish ("Faqat burilish kuzatiladi (3DoF)").
+     - ARCore qo'llansa: 6DoF rejimi.
+     - Kam RAM: yengil sifat rejimi tavsiyasi.
+  4. Ruxsatlar oqimi (`PermissionFlow`) yaratildi: Kamera (majburiy, rad etilsa sozlamalarga yo'naltiruvchi dialog), Mikrofon va Bluetooth (Android 12+) kontekstli so'rovlari.
+  5. LauncherMenuScreen interfeysiga real apparat holati bannerlari (6DoF / 3DoF / Bloklangan) va ruxsat tekshiruvi bog'landi.
+  6. To'liq birlik va widget testlari (`test/device_check_test.dart`) yozildi va barchasi (9 ta test) muvaffaqiyatli o'tdi.
