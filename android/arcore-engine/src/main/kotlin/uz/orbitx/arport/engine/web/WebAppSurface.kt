@@ -29,7 +29,7 @@ import uz.orbitx.arport.engine.window.ContentSurface
  * integrates with unified SessionStore, and routes pointer gestures to web content.
  */
 class WebAppSurface(
-    private val context: Context,
+    private val context: Context? = null,
     val manifest: AppManifest,
     val surfaceWidth: Int = 1280,
     val surfaceHeight: Int = 720,
@@ -50,6 +50,7 @@ class WebAppSurface(
     var onOpenExternalUrl: ((String) -> Unit)? = null
     var onTitleChanged: ((String) -> Unit)? = null
     var onPopupRequested: ((String) -> Unit)? = null
+    var onCrashRecovered: ((String) -> Unit)? = null
 
     companion object {
         const val NAV_BAR_HEIGHT = 68f
@@ -74,6 +75,10 @@ class WebAppSurface(
 
     @SuppressLint("SetJavaScriptEnabled")
     private fun setupWebView() {
+        if (context == null) {
+            renderPlaceholderFrame()
+            return
+        }
         try {
             val wv = WebView(context)
             wv.layout(0, 0, surfaceWidth, (surfaceHeight - (if (showNavigationBar) NAV_BAR_HEIGHT.toInt() else 0)))
@@ -116,6 +121,11 @@ class WebAppSurface(
                     currentUrl = url ?: currentUrl
                     SessionStore.getInstance().flush()
                     captureFrame()
+                }
+
+                override fun onRenderProcessGone(view: WebView?, detail: android.webkit.RenderProcessGoneDetail?): Boolean {
+                    val didCrash = detail?.didCrash() ?: false
+                    return handleRenderProcessGone(didCrash)
                 }
             }
 
@@ -165,6 +175,31 @@ class WebAppSurface(
             // Safe fallback for mocked/headless environments
             renderPlaceholderFrame()
         }
+    }
+
+    /**
+     * Handles render process termination (crash or system OOM eviction) without terminating host AR app.
+     * Returns true to signal to Android that host app must not be killed.
+     */
+    fun handleRenderProcessGone(didCrash: Boolean): Boolean {
+        val message = if (didCrash) {
+            "Web render jarayoni quladi (crash). Qayta tiklanmoqda..."
+        } else {
+            "Tizim xotira tufayli web jarayonni to'xtatdi (OOM). Qayta tiklanmoqda..."
+        }
+        onCrashRecovered?.invoke(message)
+
+        try {
+            webView?.destroy()
+        } catch (_: Exception) {}
+        webView = null
+
+        // Cleanly re-initialize offscreen WebView without bringing down the host AR engine
+        mainHandler.postDelayed({
+            setupWebView()
+        }, 400)
+
+        return true
     }
 
     /**

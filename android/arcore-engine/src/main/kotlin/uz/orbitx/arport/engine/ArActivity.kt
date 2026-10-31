@@ -84,6 +84,7 @@ class ArActivity : AppCompatActivity() {
     private var handTracker: uz.orbitx.arport.engine.hand.HandTracker? = null
     private var arRenderer: ArEngineRenderer? = null
     private var cameraManager: PassthroughCameraManager? = null
+    private var thermalMonitor: uz.orbitx.arport.engine.render.ThermalMonitor? = null
 
     // Dual HUD (Left and Right eyes for stereoscopic comfort)
     private lateinit var leftHudTextView: TextView
@@ -165,6 +166,24 @@ class ArActivity : AppCompatActivity() {
         arRenderer?.onBrightnessToggleRequested = {
             runOnUiThread {
                 android.widget.Toast.makeText(this, "☀️ Yorug'lik boshqaruvi", android.widget.Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        arRenderer?.onPerformanceWarning = { warning ->
+            runOnUiThread {
+                android.widget.Toast.makeText(this, warning, android.widget.Toast.LENGTH_LONG).show()
+            }
+        }
+
+        // Initialize Hardware Thermal & Headroom Monitor
+        val tmMonitor = uz.orbitx.arport.engine.render.ThermalMonitor(this)
+        thermalMonitor = tmMonitor
+        tmMonitor.onThermalStatusChanged = { status, _ ->
+            arRenderer?.adaptiveQualityController?.onThermalStatusChanged(status)
+        }
+        tmMonitor.onThermalWarning = { warning ->
+            runOnUiThread {
+                android.widget.Toast.makeText(this, warning, android.widget.Toast.LENGTH_LONG).show()
             }
         }
 
@@ -853,12 +872,18 @@ class ArActivity : AppCompatActivity() {
         dialog.show()
     }
 
+    override fun onTrimMemory(level: Int) {
+        super.onTrimMemory(level)
+        arRenderer?.windowManager?.onTrimMemory(level)
+    }
+
     override fun onDestroy() {
         super.onDestroy()
         isHudActive = false
         mainHandler.removeCallbacksAndMessages(null)
         trackingManager?.stop()
         handTracker?.release()
+        thermalMonitor?.release()
         cameraManager?.stopCamera()
         arRenderer?.release()
     }

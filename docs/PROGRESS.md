@@ -25,7 +25,7 @@ Ushbu hujjat har bir bosqich natijasini, qilingan ishlarni va ma'lum muammolarni
 | **15** | AR Sozlamalar ilovasi | ✅ Bajarildi | SettingsStore, SettingsApp, jonli dinamik sozlamalar, imo-ishoralar xaritasi, eksport/import, to'liq testlar |
 | **16** | O'yinlar I: 2D (Tetris, Dino, Flappy, Snake, 2048) + Chess.com | ✅ Bajarildi | 6 ta to'liq oflayn 2D o'yin + Minimax AR shaxmat, 4-tomonlama svayplar, WebAppSurface integratsiyasi |
 | **17** | O'yinlar II: 3D Table Tennis (botlar) va 3D Shooter | ✅ Bajarildi | TableTennisApp (3D stol, to'p fizikasi, 3 darajali bot, 11 ochkolik o'yin), Shooter3DApp (3D tunnel, to'lqinlar, 3 qurol, nishon, zarralar), 92 ta unit test |
-| **18** | Samaradorlik, barqarorlik, maxfiylik, tozalash | ⏳ Kutilmoqda | - |
+| **18** | Samaradorlik, barqarorlik, maxfiylik, tozalash | ✅ Bajarildi | AdaptiveQualityController, ThermalMonitor, WindowManager3D sleep & trimMemory, onRenderProcessGone recovery, ProGuard/R8 qoidalari, Zero-Intent lint audit, 103 ta unit test |
 | **19** | Yakuniy build: `ar-port.apk` | ⏳ Kutilmoqda | - |
 
 ---
@@ -442,5 +442,41 @@ Ushbu hujjat har bir bosqich natijasini, qilingan ishlarni va ma'lum muammolarni
      - `ArEngineRenderer.kt` da har kadrda `onUpdate(dtSec)` chaqiruvi kiritildi, `HOVER` va `PINCH` imo-ishoralari to'g'ridan-to'g'ri faol 3D o'yinlarga uzatildi, o'yin ichidagi svayplar oyna almashinuvidan himoyalandi.
   4. Tekshiruv va sinovlar:
      - JVM unit testlari (`TableTennisTest.kt` — 11 ta test, `Shooter3DTest.kt` — 10 ta test, `GamesTest.kt` — 5 ta test va barcha avvalgi testlar bo'yicha jami **92 ta test**) to'liq muvaffaqiyatli o'tdi (`BUILD SUCCESSFUL in 1m 20s`, 92/92 yashil).
+
+---
+
+## QADAM 18 Batafsil Hisoboti
+- **Sana:** 2026-10-31
+- **Bajarildi:**
+  1. Adaptiv Sifat Nazorati (`AdaptiveQualityController.kt`):
+     - 4 bosqichli sifat darajalari (Quality Tiers):
+       * **Ultra (Tier 0 / 60 FPS):** to'liq 3-pass Kawase blur, 0.5x FBO o'lchami, 1.0x to'liq zarrachalar zichligi, 60 FPS orqa fon WebView yangilanishi.
+       * **Balanced (Tier 1 / <45 FPS):** 2-pass Kawase blur, 0.25x FBO o'lchami, 0.6x zarrachalar, 30 FPS orqa fon WebView chastotasi.
+       * **Economy (Tier 2 / <30 FPS):** xiralashtirish o'chirilgan (frosted solid tint), 0.3x zarrachalar, 15 FPS orqa fon yangilanishi.
+       * **Critical (Tier 3 / <20 FPS yoki Termal isish):** minimal vizual effektlar (0.1x), 10 FPS, nofaol oynalar majburiy uxlatiladi (`isSleeping = true`).
+     - Histerezis va fluktuatsiyaga qarshi nazorat (pasayish uchun ketma-ket 45 kadr, tiklanish uchun ketma-ket 90 kadr barqaror >=55 FPS).
+  2. Uskuna Termal va Resurslar Monitori (`ThermalMonitor.kt`):
+     - Android 10+ (API 29+) `PowerManager.OnThermalStatusChangedListener` va `getThermalHeadroom` (API 30+) bilan integratsiya.
+     - Qurilma harorati `THERMAL_STATUS_MODERATE` (2) yoki `THERMAL_STATUS_SEVERE` (3) ga yetganda darhol `AdaptiveQualityController` ga signal yuboradi va foydalanuvchiga Liquid Glass ogohlantirish toastini ko'rsatadi: *"Qurilma qizimoqda: Samaradorlik avtomatik moslandi"*.
+  3. Xotira Bosimi va Oynalarni Uxlatish Siyosati:
+     - `WindowManager3D` da faol uyg'oq oynalar soni bo'yicha qat'iy cheklov (sukut bo'yicha 6 ta) o'rnatildi.
+     - 6 tadan oshgan eng past z-order dagi oyna avtomatik uxlatiladi (`isSleeping = true`).
+     - Oyna fokuslanganda uyg'otiladi (`isSleeping = false`).
+     - `onTrimMemory(level)`: tizim xotirasi yetishmovchiligida barcha nofaol orqa fondagi oynalar avtomatik uxlatiladi.
+     - `WindowRenderer3D` da uxlayotgan oynalarning offscreen teksturalari qayta chizilmaydi, bu GPU o'tkazuvchanligi va xotirasini tejaydi.
+  4. WebView Avto-Tiklanish (Crash Recovery):
+     - `WebAppSurface` da `onRenderProcessGone` to'liq implementatsiya qilindi.
+     - Render jarayoni qulaganda yoki OOM tufayli to'xtatilganda, funksiya `true` qaytaradi — bu asosiy AR Port (`ArActivity`) qulashining (crash) oldini oladi.
+     - Nofaol webview tozalanib, xavfsiz tarzda orqa fonda qayta initsializatsiya qilinadi.
+  5. Xavfsizlik, Maxfiylik va Zero-Escape Lint Auditi:
+     - `AndroidManifest.xml` da `android:allowBackup="false"` o'rnatilganligi tekshirildi.
+     - `SandboxPolicy` barcha 12 ta tashqi intent sxemalarini (`intent://`, `market://`, `tg://`, `instagram://`, `tel:`, `sms:`, `mailto:` va boshqalar) hamda ruxsat berilmagan `file://` / `content://` larni 100% bloklashi tasdiqlandi.
+     - Statik kod lint testi: Kotlin dvigatel manba kodida birorta ham tashqi intent ochuvchi kod (`ACTION_VIEW`, `startActivity(Intent(`) yo'qligi qat'iy isbotlandi (0 ta buzilish).
+     - `consumer-rules.pro` va `proguard-rules.pro` fayllarida MediaPipe, ARCore, CameraX, GLES va JavaScript interfeyslari uchun to'liq R8/ProGuard saqlash qoidalari o'rnatildi.
+  6. 103 ta Unit Test va Uzoq Muddatli Barqarorlik:
+     - `PerformanceAndStabilityTest.kt` orqali adaptiv sifat zanjiri, termal boshqaruv, ko'p oynali stress-test, xotira bosimi, WebView qulashini tiklash, germetik sandbox va 10,000 kadrli uzoq barqarorlik testi tekshirildi.
+     - Barcha **103 ta unit test 100% muvaffaqiyatli o'tdi** (`BUILD SUCCESSFUL in 54s`).
+  7. TZ 16-bo'limdagi barcha 15 ta mezon `docs/RISKS.md` da to'liq baholandi va rasmiylashtirildi.
+
 
 

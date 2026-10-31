@@ -51,7 +51,6 @@ class WindowManager3D(
             window.zOrder = nextZOrder++
 
             windows.add(window)
-            enforceSleepPolicy()
             setFocus(window.id)
             return window
         }
@@ -63,9 +62,7 @@ class WindowManager3D(
     fun addWindow(window: SpatialWindow) {
         synchronized(lock) {
             if (!windows.any { it.id == window.id }) {
-                window.zOrder = nextZOrder++
                 windows.add(window)
-                enforceSleepPolicy()
                 setFocus(window.id)
             }
         }
@@ -107,6 +104,7 @@ class WindowManager3D(
                     w.scaleSpring.snapTo(0.96f)
                 }
             }
+            enforceSleepPolicy()
         }
     }
 
@@ -144,22 +142,58 @@ class WindowManager3D(
     }
 
     /**
-     * Enforces the maximum concurrent active window policy (TZ 7.2).
-     * If active windows exceed limit, the oldest unfocused window is put to sleep.
+     * Enforces the maximum concurrent active window policy (TZ 7.2 & 14).
+     * If active awake windows exceed limit, the oldest unfocused window is put to sleep.
      */
     fun enforceSleepPolicy() {
         synchronized(lock) {
-            val active = windows.filter { it.state != WindowState.MINIMIZED }
-            if (active.size > maxWindowsLimit) {
-                val excessCount = active.size - maxWindowsLimit
-                val candidates = active
-                    .filter { !it.isFocused && !it.isSleeping }
+            val awake = windows.filter { it.state != WindowState.MINIMIZED && !it.isSleeping }
+            if (awake.size > maxWindowsLimit) {
+                val excessCount = awake.size - maxWindowsLimit
+                val candidates = awake
+                    .filter { !it.isFocused }
                     .sortedBy { it.zOrder }
 
                 for (i in 0 until excessCount.coerceAtMost(candidates.size)) {
                     candidates[i].isSleeping = true
                 }
             }
+        }
+    }
+
+    /**
+     * Responds to OS memory pressure by putting non-focused background windows to sleep.
+     */
+    fun onTrimMemory(level: Int) {
+        synchronized(lock) {
+            for (w in windows) {
+                if (!w.isFocused && w.state != WindowState.MINIMIZED) {
+                    w.isSleeping = true
+                }
+            }
+        }
+    }
+
+    fun getSleepingWindowsCount(): Int {
+        return synchronized(lock) {
+            windows.count { it.isSleeping && it.state != WindowState.MINIMIZED }
+        }
+    }
+
+    fun getActiveWindowsCount(): Int {
+        return synchronized(lock) {
+            windows.count { !it.isSleeping && it.state != WindowState.MINIMIZED }
+        }
+    }
+
+    /**
+     * Memory usage estimate in megabytes based on surface texture buffers.
+     */
+    fun getMemoryUsageEstimateMb(): Float {
+        synchronized(lock) {
+            val activeCount = getActiveWindowsCount()
+            val sleepCount = getSleepingWindowsCount()
+            return (activeCount * 55.0f) + (sleepCount * 8.0f)
         }
     }
 

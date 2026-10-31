@@ -235,7 +235,10 @@ void main() {
                 if (surface.textureId == 0) {
                     surface.onSurfaceCreated()
                 }
-                surface.updateTextureIfNeeded()
+                // Only update texture when window is active and not sleeping
+                if (!window.isSleeping) {
+                    surface.updateTextureIfNeeded()
+                }
                 GLES30.glActiveTexture(GLES30.GL_TEXTURE1)
                 GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, surface.textureId)
             }

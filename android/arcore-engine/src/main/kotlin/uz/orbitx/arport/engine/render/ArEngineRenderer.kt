@@ -55,12 +55,14 @@ class ArEngineRenderer(
     val appRegistry = AppRegistry(context)
     val spatialDock = SpatialDock()
     val spatialHomePanel = SpatialHomePanel(appRegistry)
+    val adaptiveQualityController = AdaptiveQualityController(glassRenderer, windowManager, passthroughRenderer.fpsTracker)
 
     var lastGestureLabel: String = "Kutilmoqda"
     var onHomeDockRequested: (() -> Unit)? = null
     var onVolumeToggleRequested: (() -> Unit)? = null
     var onBrightnessToggleRequested: (() -> Unit)? = null
     var onExitRequested: (() -> Unit)? = null
+    var onPerformanceWarning: ((String) -> Unit)? = null
 
     var currentSettings = uz.orbitx.arport.engine.settings.ArSettings()
 
@@ -71,6 +73,9 @@ class ArEngineRenderer(
         val settingsStore = uz.orbitx.arport.engine.settings.SettingsStore.getInstance(context)
         settingsStore.addListener { updated ->
             applySettings(updated)
+        }
+        adaptiveQualityController.onPerformanceWarning = { warning ->
+            onPerformanceWarning?.invoke(warning)
         }
         gestureEngine.setListener(object : GestureListener {
             override fun onGestureEvent(event: GestureEvent) {
@@ -231,6 +236,9 @@ class ArEngineRenderer(
         lastFrameTimeNs = nowNs
 
         frameCounter++
+        // Live Adaptive Quality Optimization Loop
+        adaptiveQualityController.onFrame(getFps())
+
         if (frameCounter % 30 == 0) {
             // Periodically refresh system monitor window with live metrics
             windowManager.allWindows.find { it.appId == "system_monitor" }?.let { win ->
