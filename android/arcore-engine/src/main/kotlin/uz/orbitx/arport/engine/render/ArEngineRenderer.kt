@@ -4,6 +4,10 @@ import android.graphics.SurfaceTexture
 import android.opengl.GLES30
 import android.opengl.GLSurfaceView
 import android.opengl.Matrix
+import uz.orbitx.arport.engine.apps.HomeCategory
+import uz.orbitx.arport.engine.apps.SpatialDock
+import uz.orbitx.arport.engine.apps.SpatialDockAction
+import uz.orbitx.arport.engine.apps.SpatialHomePanel
 import uz.orbitx.arport.engine.gestures.GestureEngine
 import uz.orbitx.arport.engine.gestures.GestureEvent
 import uz.orbitx.arport.engine.gestures.GestureListener
@@ -11,6 +15,7 @@ import uz.orbitx.arport.engine.gestures.GestureType
 import uz.orbitx.arport.engine.input.InputInjector
 import uz.orbitx.arport.engine.input.KeyAction
 import uz.orbitx.arport.engine.input.SpatialKeyboard
+import uz.orbitx.arport.engine.registry.AppRegistry
 import uz.orbitx.arport.engine.stereo.LensProfile
 import uz.orbitx.arport.engine.stereo.StereoRenderer
 import uz.orbitx.arport.engine.tracking.TrackingManager
@@ -46,9 +51,15 @@ class ArEngineRenderer(
     val gestureEngine = GestureEngine()
     val inputInjector = InputInjector()
     val spatialKeyboard = SpatialKeyboard()
+    val appRegistry = AppRegistry()
+    val spatialDock = SpatialDock()
+    val spatialHomePanel = SpatialHomePanel(appRegistry)
 
     var lastGestureLabel: String = "Kutilmoqda"
     var onHomeDockRequested: (() -> Unit)? = null
+    var onVolumeToggleRequested: (() -> Unit)? = null
+    var onBrightnessToggleRequested: (() -> Unit)? = null
+    var onExitRequested: (() -> Unit)? = null
 
     init {
         gestureEngine.setListener(object : GestureListener {
@@ -68,6 +79,24 @@ class ArEngineRenderer(
                 windowManager.allWindows.find { it.appId == "spatial_notes" }?.let { notesWin ->
                     windowManager.backspaceNotesText(notesWin)
                 }
+            }
+        }
+
+        spatialDock.onDockAction = { action ->
+            when (action) {
+                SpatialDockAction.HOME -> toggleHomePanel()
+                SpatialDockAction.RECENTER -> recenter()
+                SpatialDockAction.KEYBOARD -> toggleSpatialKeyboard()
+                SpatialDockAction.VOLUME -> onVolumeToggleRequested?.invoke()
+                SpatialDockAction.BRIGHTNESS -> onBrightnessToggleRequested?.invoke()
+                SpatialDockAction.EXIT -> onExitRequested?.invoke()
+            }
+        }
+
+        spatialHomePanel.onAppSelected = { app ->
+            appRegistry.launchApp(app.id, windowManager)
+            spatialHomePanel.homeWindow?.let { win ->
+                windowManager.minimizeWindow(win.id)
             }
         }
     }
@@ -102,6 +131,16 @@ class ArEngineRenderer(
         glassRenderer.onSurfaceCreated()
         windowRenderer.onSurfaceCreated()
         handRenderer.onSurfaceCreated()
+
+        // Initialize Spatial Dock and Home Panel
+        if (spatialDock.dockWindow == null) {
+            val dockWin = spatialDock.createDockWindow()
+            windowManager.addWindow(dockWin)
+        }
+        if (spatialHomePanel.homeWindow == null) {
+            val homeWin = spatialHomePanel.createHomeWindow()
+            windowManager.addWindow(homeWin)
+        }
 
         passthroughRenderer.surfaceTexture?.let { st ->
             onSurfaceTextureReady(st)
@@ -279,13 +318,26 @@ class ArEngineRenderer(
             return
         }
 
-        // 2. Direct Window Transformations (Drag, Depth, Resize, Controls)
+        // 2. Dock Tap interaction
+        if (event.window?.appId == "spatial_dock" && event.type == GestureType.TAP) {
+            spatialDock.onDockHit(event.u, event.v)
+            return
+        }
+
+        // 3. Home Panel Tap interaction
+        if (event.window?.appId == "spatial_home" && event.type == GestureType.TAP) {
+            spatialHomePanel.onHomeHit(event.u, event.v)
+            return
+        }
+
+        // 4. Direct Window Transformations (Drag, Depth, Resize, Controls)
         val handled = inputInjector.handleWindowGesture(event, windowManager)
         if (handled) return
 
-        // 3. System-level Gestures
+        // 5. System-level Gestures
         when (event.type) {
             GestureType.PALM_UP -> {
+                toggleHomePanel()
                 onHomeDockRequested?.invoke()
             }
             GestureType.SWIPE_LEFT -> {
@@ -298,6 +350,16 @@ class ArEngineRenderer(
                 event.window?.let { windowManager.closeWindow(it.id) }
             }
             else -> {}
+        }
+    }
+
+    fun toggleHomePanel() {
+        val win = spatialHomePanel.homeWindow ?: return
+        if (win.state == WindowState.MINIMIZED) {
+            windowManager.restoreWindow(win.id)
+            spatialHomePanel.renderHomeContent()
+        } else {
+            windowManager.minimizeWindow(win.id)
         }
     }
 

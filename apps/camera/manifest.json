@@ -1,0 +1,25 @@
+{
+  "id": "camera",
+  "name": {
+    "uz": "Kamera",
+    "en": "Camera",
+    "ru": "Камера"
+  },
+  "icon": "📷",
+  "version": "1.0.0",
+  "type": "native",
+  "category": "tools",
+  "entry": "uz.orbitx.arport.engine.apps.CameraApp",
+  "defaultAspect": "16:9",
+  "defaultSize": {
+    "w": 1.0,
+    "h": 0.5625
+  },
+  "multiWindow": false,
+  "permissions": ["camera", "microphone"],
+  "allowedHosts": [],
+  "sessionGroup": "system",
+  "minEngineVersion": "1.0",
+  "order": 6
+}
+

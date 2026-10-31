@@ -1,0 +1,25 @@
+{
+  "id": "calendar",
+  "name": {
+    "uz": "Kalendar",
+    "en": "Calendar",
+    "ru": "Календарь"
+  },
+  "icon": "📅",
+  "version": "1.0.0",
+  "type": "native",
+  "category": "tools",
+  "entry": "uz.orbitx.arport.engine.apps.CalendarApp",
+  "defaultAspect": "16:9",
+  "defaultSize": {
+    "w": 0.95,
+    "h": 0.534
+  },
+  "multiWindow": false,
+  "permissions": [],
+  "allowedHosts": [],
+  "sessionGroup": "system",
+  "minEngineVersion": "1.0",
+  "order": 9
+}
+

@@ -149,6 +149,24 @@ class ArActivity : AppCompatActivity() {
             }
         }
 
+        arRenderer?.onExitRequested = {
+            runOnUiThread {
+                showExitConfirmDialog()
+            }
+        }
+
+        arRenderer?.onVolumeToggleRequested = {
+            runOnUiThread {
+                android.widget.Toast.makeText(this, "🔊 Ovoz boshqaruvi", android.widget.Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        arRenderer?.onBrightnessToggleRequested = {
+            runOnUiThread {
+                android.widget.Toast.makeText(this, "☀️ Yorug'lik boshqaruvi", android.widget.Toast.LENGTH_SHORT).show()
+            }
+        }
+
         val ht = uz.orbitx.arport.engine.hand.HandTracker(this)
         handTracker = ht
         arRenderer?.handTracker = ht
@@ -241,6 +259,25 @@ class ArActivity : AppCompatActivity() {
         }
         actionRow.addView(
             keyboardButton,
+            LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+                setMargins(0, 0, 16, 0)
+            }
+        )
+
+        // Home Button (Bosh Ekran)
+        val homeButton = TextView(this).apply {
+            text = "🏠 Home"
+            textSize = 12f
+            setTextColor(Color.WHITE)
+            setPadding(24, 14, 24, 14)
+            background = createGlassBackground()
+            setOnClickListener {
+                performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                arRenderer?.toggleHomePanel()
+            }
+        }
+        actionRow.addView(
+            homeButton,
             LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
                 setMargins(0, 0, 16, 0)
             }
@@ -679,6 +716,18 @@ class ArActivity : AppCompatActivity() {
                         return
                     }
 
+                    // 2. Dock Tap
+                    if (hitWin.appId == "spatial_dock") {
+                        renderer.spatialDock.onDockHit(hitResult.u, hitResult.v)
+                        return
+                    }
+
+                    // 3. Home Panel Tap
+                    if (hitWin.appId == "spatial_home") {
+                        renderer.spatialHomePanel.onHomeHit(hitResult.u, hitResult.v)
+                        return
+                    }
+
                     when (hitResult.component) {
                         uz.orbitx.arport.engine.window.SpatialWindow.WindowComponent.CLOSE_BUTTON -> {
                             renderer.windowManager.closeWindow(hitWin.id)
@@ -719,6 +768,86 @@ class ArActivity : AppCompatActivity() {
                 touchDraggedWindow = null
             }
         }
+    }
+
+    private fun showExitConfirmDialog() {
+        val dialog = Dialog(this)
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
+        dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+
+        val layout = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER_HORIZONTAL
+            setPadding(48, 36, 48, 36)
+            background = GradientDrawable().apply {
+                setColor(Color.parseColor("#E61C1C1E"))
+                cornerRadius = 36f
+                setStroke(1, Color.parseColor("#44FFFFFF"))
+            }
+        }
+
+        val title = TextView(this).apply {
+            text = "AR Rejimdan Chiqish"
+            textSize = 18f
+            setTextColor(Color.WHITE)
+            setTypeface(null, android.graphics.Typeface.BOLD)
+            gravity = Gravity.CENTER
+        }
+        layout.addView(title)
+
+        val desc = TextView(this).apply {
+            text = "Rostdan ham AR rejimini yopmoqchimisiz?"
+            textSize = 14f
+            setTextColor(Color.parseColor("#8E8E93"))
+            gravity = Gravity.CENTER
+            setPadding(0, 12, 0, 24)
+        }
+        layout.addView(desc)
+
+        val btnRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
+        }
+
+        val cancelBtn = TextView(this).apply {
+            text = "Bekor qilish"
+            textSize = 14f
+            setTextColor(Color.WHITE)
+            setPadding(28, 14, 28, 14)
+            background = GradientDrawable().apply {
+                setColor(Color.parseColor("#33FFFFFF"))
+                cornerRadius = 20f
+            }
+            setOnClickListener { dialog.dismiss() }
+        }
+        btnRow.addView(cancelBtn)
+
+        val exitBtn = TextView(this).apply {
+            text = "Chiqish"
+            textSize = 14f
+            setTextColor(Color.parseColor("#FF453A"))
+            setPadding(28, 14, 28, 14)
+            background = GradientDrawable().apply {
+                setColor(Color.parseColor("#33FF453A"))
+                cornerRadius = 20f
+                setStroke(1, Color.parseColor("#66FF453A"))
+            }
+            setOnClickListener {
+                dialog.dismiss()
+                finish()
+            }
+        }
+        val exitParams = LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.WRAP_CONTENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT
+        ).apply {
+            setMargins(16, 0, 0, 0)
+        }
+        btnRow.addView(exitBtn, exitParams)
+
+        layout.addView(btnRow)
+        dialog.setContentView(layout)
+        dialog.show()
     }
 
     override fun onDestroy() {

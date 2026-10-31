@@ -1,0 +1,25 @@
+{
+  "id": "instagram",
+  "name": {
+    "uz": "Instagram",
+    "en": "Instagram",
+    "ru": "Instagram"
+  },
+  "icon": "📸",
+  "version": "1.0.0",
+  "type": "web",
+  "category": "social",
+  "entry": "https://www.instagram.com",
+  "defaultAspect": "9:16",
+  "defaultSize": {
+    "w": 0.48,
+    "h": 0.853
+  },
+  "multiWindow": false,
+  "permissions": ["audio", "camera", "microphone"],
+  "allowedHosts": ["instagram.com", "*.instagram.com", "cdninstagram.com", "facebook.com"],
+  "sessionGroup": "meta",
+  "minEngineVersion": "1.0",
+  "order": 3
+}
+

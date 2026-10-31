@@ -1,0 +1,25 @@
+{
+  "id": "template_app",
+  "name": {
+    "uz": "Shablon Ilova",
+    "en": "Template App",
+    "ru": "Шаблонное Приложение"
+  },
+  "icon": "📱",
+  "version": "1.0.0",
+  "type": "web",
+  "category": "tools",
+  "entry": "https://example.com",
+  "defaultAspect": "16:9",
+  "defaultSize": {
+    "w": 1.0,
+    "h": 0.5625
+  },
+  "multiWindow": false,
+  "permissions": ["audio"],
+  "allowedHosts": ["example.com"],
+  "sessionGroup": "default",
+  "minEngineVersion": "1.0",
+  "order": 999
+}
+

@@ -1,0 +1,25 @@
+{
+  "id": "shooter3d",
+  "name": {
+    "uz": "3D Mergan",
+    "en": "3D Target Shooter",
+    "ru": "3D Стрелок"
+  },
+  "icon": "🎯",
+  "version": "1.0.0",
+  "type": "game3d",
+  "category": "games",
+  "entry": "uz.orbitx.arport.engine.apps.Shooter3DApp",
+  "defaultAspect": "16:9",
+  "defaultSize": {
+    "w": 1.2,
+    "h": 0.675
+  },
+  "multiWindow": false,
+  "permissions": ["audio"],
+  "allowedHosts": [],
+  "sessionGroup": "games",
+  "minEngineVersion": "1.0",
+  "order": 18
+}
+

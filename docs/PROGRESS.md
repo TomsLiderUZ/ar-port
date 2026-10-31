@@ -19,7 +19,7 @@ Ushbu hujjat har bir bosqich natijasini, qilingan ishlarni va ma'lum muammolarni
 | **9** | Liquid Glass renderer | ✅ Bajarildi | GlassRenderer (Kawase/dual-filter blur, 1/2 va 1/4 FBO ping-pong), squircle superellipse burchaklar, chekka nuri, specular yaltirash, SpringAnimation (Apple fizika burchagi va taktil tebranish), kamaytirilgan shaffoflik rejimi |
 | **10** | Qo'l kuzatuvi (MediaPipe) va qo'l yoritilishi | ✅ Bajarildi | HandTracker (MediaPipe Tasks Vision GPU/CPU, 21 landmark), OneEuroFilter (adaptiv silliqlash), HandRenderer (qo'l usti aurosi, skelet suyaklari, 3D hand ray, oynalar ustida hover yoritilishi, 200ms hold loss siyosati) |
 | **11** | Gest dvigateli va kiritishni oynaga uzatish | ✅ Bajarildi | GestureEngine (Pinch, Tap, Hold, Drag, Scroll inertsiya, Two-Hand Zoom, Corner Resize, Depth Z, Palm-up, Fist, Swipe), InputInjector (UV->Pixel, MotionEvent), SpatialKeyboard (UZ/EN/RU/Num/Emoji shisha klaviatura), Oddiy rejim teginish fallbacki |
-| **12** | Home panel, dock, ilova reyestri va plagin tizimi | ⏳ Kutilmoqda | - |
+| **12** | Home panel, dock, ilova reyestri va plagin tizimi | ✅ Bajarildi | AppRegistry (18 ta ilova manifesti), tools/generate_registry.dart, SpatialDock (Vision Pro dock: Home, Recenter, Ovoz, Yorug'lik, Klaviatura, Chiqish), SpatialHomePanel (kategoriya tablari, qidiruv, 3D ilovalar to'ri) |
 | **13** | Web ilovalar, umumiy sessiya va sandbox | ⏳ Kutilmoqda | - |
 | **14** | Native ilovalar: Kamera, Qaydlar, Soat, Kalendar | ⏳ Kutilmoqda | - |
 | **15** | AR Sozlamalar ilovasi | ⏳ Kutilmoqda | - |
@@ -262,3 +262,33 @@ Ushbu hujjat har bir bosqich natijasini, qilingan ishlarni va ma'lum muammolarni
      - JVM unit testlari (`GestureTest.kt`, `HandTest.kt`, `SpringTest.kt`, `WindowTest.kt`, `StereoTest.kt`, `QuaternionTest.kt` bo'yicha jami **35 ta test**) to'liq muvaffaqiyatli o'tdi (`BUILD SUCCESSFUL in 39s`).
      - Flutter testlari (12 ta test) va Flutter tahlili (`flutter analyze` — 0 ogohlantirish) to'liq o'tdi.
      - Debug APK (`flutter build apk --debug`) muvaffaqiyatli yig'ildi (`build\app\outputs\flutter-apk\app-debug.apk`, 215.8 MB).
+
+---
+
+## QADAM 12 Batafsil Hisoboti
+- **Sana:** 2026-10-31
+- **Bajarildi:**
+  1. Ilova reyestri va plagin tizimi arxitekturasi:
+     - `AppManifest.kt` va `ARApp.kt` interfeysi yaratildi (`id`, `name`, `icon`, `version`, `type`, `category`, `entry`, `defaultAspect`, `defaultSize`, `multiWindow`, `permissions`, `allowedHosts`, `sessionGroup`, `minEngineVersion`, `order`).
+     - 18 ta ilovaning to'liq `manifest.json` fayllari yaratildi (`apps/` katalogida: YouTube, Telegram, Instagram, Spotify, Google, Kamera, Qaydlar, Soat, Kalendar, Sozlamalar, Tetris, Dino, Flappy, Snake, 2048, AR Shaxmat, 3D Stol Tennisi, 3D Mergan).
+     - `tools/generate_registry.dart` generatori yaratildi va ishga tushirildi; `apps/app_registry.g.json` hamda `android/arcore-engine/src/main/assets/registry/app_registry.json` muvaffaqiyatli generatsiya qilindi.
+     - `docs/ADDING_AN_APP.md` qo'llanmasi yaratildi.
+     - `AppRegistry.kt`: manifestlarni o'qish, kesh, qidiruv, kategoriya bo'yicha saralash va `launchApp` orqali yangi 3D oynada ishga tushirish mantig'i.
+  2. Vision Pro uslubidagi pastki dock (`SpatialDock.kt`):
+     - Ko'krak balandligida ($y \approx -0.42$, $z \approx -1.3$) suzuvchi iOS Liquid Glass shaklidagi tabletka (pill) dock.
+     - 6 ta tezkor boshqaruv amallari: 🏠 Home, 🎯 Markazlashtirish, 🔊 Ovoz, ☀️ Yorug'lik, ⌨️ Klaviatura, ✕ Chiqish.
+     - Lazer nuri va sensorli teginish orqali bosish va faol bosilish yoritilishi.
+  3. Bosh ekran / Ilovalar paneli (`SpatialHomePanel.kt`):
+     - Vision Pro uslubidagi 3D suzuvchi markaziy oyna ($1.15 \times 0.65$ m).
+     - Shisha sarlavha: jonli soat, batareya holati va tizim datchik indikatori.
+     - Kategoriya tablari: "Barchasi", "🌐 Web", "🎮 O'yinlar", "🛠️ Asboblar".
+     - Ilovalar to'ri (Grid): 5 ustunli squircle shisha kartalar, ikonka, o'zbekcha nom va ilova turi.
+     - Ilova kartasiga bosilganda `AppRegistry.launchApp` orqali yangi 3D fazoviy oyna ochilishi va Home paneli avtomatik yig'ilishi.
+  4. Render va Activity integratsiyasi (`ArEngineRenderer.kt` va `ArActivity.kt`):
+     - Kaftni yuqoriga qaraganda (Palm-up) yoki Dock Home tugmasi bosilganda Home paneli silliq ochiladi/yopiladi.
+     - Chiqish tugmasi (`✕`) bosilganda iOS Liquid Glass tasdiqlash dialogi (`showExitConfirmDialog`) chiqadi.
+     - HUD paneliga "🏠 Home" tezkor tugmasi qo'shildi.
+  5. Tekshiruv va sinovlar:
+     - JVM unit testlari (`RegistryTest.kt`, `GestureTest.kt`, `HandTest.kt`, `SpringTest.kt`, `WindowTest.kt`, `StereoTest.kt`, `QuaternionTest.kt` bo'yicha jami **43 ta test**) to'liq muvaffaqiyatli o'tdi (`BUILD SUCCESSFUL in 57s`).
+     - Flutter testlari (12 ta test) va Flutter tahlili (`flutter analyze` — 0 ogohlantirish) to'liq o'tdi.
+     - Debug APK (`flutter build apk --debug`) muvaffaqiyatli yig'ildi (`build\app\outputs\flutter-apk\app-debug.apk`, 215.89 MB).

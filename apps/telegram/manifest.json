@@ -1,0 +1,25 @@
+{
+  "id": "telegram",
+  "name": {
+    "uz": "Telegram",
+    "en": "Telegram",
+    "ru": "Telegram"
+  },
+  "icon": "✈️",
+  "version": "1.0.0",
+  "type": "web",
+  "category": "social",
+  "entry": "https://web.telegram.org/a/",
+  "defaultAspect": "9:16",
+  "defaultSize": {
+    "w": 0.48,
+    "h": 0.853
+  },
+  "multiWindow": false,
+  "permissions": ["audio", "microphone"],
+  "allowedHosts": ["telegram.org", "*.telegram.org", "web.telegram.org"],
+  "sessionGroup": "telegram",
+  "minEngineVersion": "1.0",
+  "order": 2
+}
+

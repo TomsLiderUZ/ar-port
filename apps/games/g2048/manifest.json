@@ -1,0 +1,25 @@
+{
+  "id": "g2048",
+  "name": {
+    "uz": "2048",
+    "en": "2048 Puzzle",
+    "ru": "2048"
+  },
+  "icon": "🔢",
+  "version": "1.0.0",
+  "type": "game2d",
+  "category": "games",
+  "entry": "assets/games/g2048/index.html",
+  "defaultAspect": "9:16",
+  "defaultSize": {
+    "w": 0.45,
+    "h": 0.8
+  },
+  "multiWindow": false,
+  "permissions": ["audio"],
+  "allowedHosts": [],
+  "sessionGroup": "games",
+  "minEngineVersion": "1.0",
+  "order": 15
+}
+

@@ -1,0 +1,25 @@
+{
+  "id": "google",
+  "name": {
+    "uz": "Google Brauzer",
+    "en": "Google Browser",
+    "ru": "Google Браузер"
+  },
+  "icon": "🌐",
+  "version": "1.0.0",
+  "type": "web",
+  "category": "tools",
+  "entry": "https://www.google.com",
+  "defaultAspect": "16:9",
+  "defaultSize": {
+    "w": 1.1,
+    "h": 0.619
+  },
+  "multiWindow": true,
+  "permissions": ["audio", "camera", "microphone"],
+  "allowedHosts": ["*"],
+  "sessionGroup": "google",
+  "minEngineVersion": "1.0",
+  "order": 5
+}
+

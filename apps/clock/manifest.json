@@ -1,0 +1,25 @@
+{
+  "id": "clock",
+  "name": {
+    "uz": "Soat",
+    "en": "Clock",
+    "ru": "Часы"
+  },
+  "icon": "⏱️",
+  "version": "1.0.0",
+  "type": "native",
+  "category": "tools",
+  "entry": "uz.orbitx.arport.engine.apps.ClockApp",
+  "defaultAspect": "16:9",
+  "defaultSize": {
+    "w": 0.85,
+    "h": 0.478
+  },
+  "multiWindow": false,
+  "permissions": ["audio"],
+  "allowedHosts": [],
+  "sessionGroup": "system",
+  "minEngineVersion": "1.0",
+  "order": 8
+}
+

@@ -1,0 +1,25 @@
+{
+  "id": "settings",
+  "name": {
+    "uz": "AR Sozlamalar",
+    "en": "AR Settings",
+    "ru": "AR Настройки"
+  },
+  "icon": "⚙️",
+  "version": "1.0.0",
+  "type": "native",
+  "category": "system",
+  "entry": "uz.orbitx.arport.engine.apps.SettingsApp",
+  "defaultAspect": "16:9",
+  "defaultSize": {
+    "w": 1.05,
+    "h": 0.59
+  },
+  "multiWindow": false,
+  "permissions": [],
+  "allowedHosts": [],
+  "sessionGroup": "system",
+  "minEngineVersion": "1.0",
+  "order": 10
+}
+

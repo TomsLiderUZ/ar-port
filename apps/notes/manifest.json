@@ -1,0 +1,25 @@
+{
+  "id": "notes",
+  "name": {
+    "uz": "Qaydlar",
+    "en": "Notes",
+    "ru": "Заметки"
+  },
+  "icon": "📝",
+  "version": "1.0.0",
+  "type": "native",
+  "category": "tools",
+  "entry": "uz.orbitx.arport.engine.apps.NotesApp",
+  "defaultAspect": "9:16",
+  "defaultSize": {
+    "w": 0.45,
+    "h": 0.8
+  },
+  "multiWindow": false,
+  "permissions": [],
+  "allowedHosts": [],
+  "sessionGroup": "system",
+  "minEngineVersion": "1.0",
+  "order": 7
+}
+

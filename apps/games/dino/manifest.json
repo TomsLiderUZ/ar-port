@@ -1,0 +1,25 @@
+{
+  "id": "dino",
+  "name": {
+    "uz": "Dino Yugurish",
+    "en": "Dino Runner",
+    "ru": "Динозаврик"
+  },
+  "icon": "🦖",
+  "version": "1.0.0",
+  "type": "game2d",
+  "category": "games",
+  "entry": "assets/games/dino/index.html",
+  "defaultAspect": "16:9",
+  "defaultSize": {
+    "w": 1.0,
+    "h": 0.5625
+  },
+  "multiWindow": false,
+  "permissions": ["audio"],
+  "allowedHosts": [],
+  "sessionGroup": "games",
+  "minEngineVersion": "1.0",
+  "order": 12
+}
+

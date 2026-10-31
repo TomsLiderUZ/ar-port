@@ -1,0 +1,25 @@
+{
+  "id": "pingpong3d",
+  "name": {
+    "uz": "3D Stol Tennisi",
+    "en": "3D Table Tennis",
+    "ru": "3D Настольный Теннис"
+  },
+  "icon": "🏓",
+  "version": "1.0.0",
+  "type": "game3d",
+  "category": "games",
+  "entry": "uz.orbitx.arport.engine.apps.TableTennisApp",
+  "defaultAspect": "16:9",
+  "defaultSize": {
+    "w": 1.2,
+    "h": 0.675
+  },
+  "multiWindow": false,
+  "permissions": ["audio"],
+  "allowedHosts": [],
+  "sessionGroup": "games",
+  "minEngineVersion": "1.0",
+  "order": 17
+}
+

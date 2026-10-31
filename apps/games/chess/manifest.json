@@ -1,0 +1,25 @@
+{
+  "id": "chess",
+  "name": {
+    "uz": "AR Shaxmat",
+    "en": "AR Chess",
+    "ru": "AR Шахматы"
+  },
+  "icon": "♟️",
+  "version": "1.0.0",
+  "type": "game2d",
+  "category": "games",
+  "entry": "assets/games/chess/index.html",
+  "defaultAspect": "16:9",
+  "defaultSize": {
+    "w": 0.95,
+    "h": 0.534
+  },
+  "multiWindow": false,
+  "permissions": ["audio"],
+  "allowedHosts": [],
+  "sessionGroup": "games",
+  "minEngineVersion": "1.0",
+  "order": 16
+}
+

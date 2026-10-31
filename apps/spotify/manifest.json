@@ -1,0 +1,25 @@
+{
+  "id": "spotify",
+  "name": {
+    "uz": "Spotify",
+    "en": "Spotify",
+    "ru": "Spotify"
+  },
+  "icon": "🎵",
+  "version": "1.0.0",
+  "type": "web",
+  "category": "media",
+  "entry": "https://open.spotify.com",
+  "defaultAspect": "16:9",
+  "defaultSize": {
+    "w": 1.05,
+    "h": 0.59
+  },
+  "multiWindow": false,
+  "permissions": ["audio"],
+  "allowedHosts": ["spotify.com", "*.spotify.com", "scdn.co", "spotifycdn.com"],
+  "sessionGroup": "spotify",
+  "minEngineVersion": "1.0",
+  "order": 4
+}
+

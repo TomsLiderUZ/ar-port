@@ -1,0 +1,25 @@
+{
+  "id": "youtube",
+  "name": {
+    "uz": "YouTube",
+    "en": "YouTube",
+    "ru": "YouTube"
+  },
+  "icon": "▶️",
+  "version": "1.0.0",
+  "type": "web",
+  "category": "media",
+  "entry": "https://m.youtube.com",
+  "defaultAspect": "16:9",
+  "defaultSize": {
+    "w": 1.15,
+    "h": 0.647
+  },
+  "multiWindow": true,
+  "permissions": ["audio", "camera", "microphone"],
+  "allowedHosts": ["youtube.com", "*.youtube.com", "googlevideo.com", "ytimg.com", "google.com", "accounts.google.com"],
+  "sessionGroup": "google",
+  "minEngineVersion": "1.0",
+  "order": 1
+}
+

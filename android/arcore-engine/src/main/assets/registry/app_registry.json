@@ -1,0 +1,500 @@
+{
+  "version": "1.0.0",
+  "generated_at": "2026-10-31T13:03:14.715374Z",
+  "apps_count": 18,
+  "apps": [
+    {
+      "id": "youtube",
+      "name": {
+        "uz": "YouTube",
+        "en": "YouTube",
+        "ru": "YouTube"
+      },
+      "icon": "▶️",
+      "version": "1.0.0",
+      "type": "web",
+      "category": "media",
+      "entry": "https://m.youtube.com",
+      "defaultAspect": "16:9",
+      "defaultSize": {
+        "w": 1.15,
+        "h": 0.647
+      },
+      "multiWindow": true,
+      "permissions": [
+        "audio",
+        "camera",
+        "microphone"
+      ],
+      "allowedHosts": [
+        "youtube.com",
+        "*.youtube.com",
+        "googlevideo.com",
+        "ytimg.com",
+        "google.com",
+        "accounts.google.com"
+      ],
+      "sessionGroup": "google",
+      "minEngineVersion": "1.0",
+      "order": 1
+    },
+    {
+      "id": "telegram",
+      "name": {
+        "uz": "Telegram",
+        "en": "Telegram",
+        "ru": "Telegram"
+      },
+      "icon": "✈️",
+      "version": "1.0.0",
+      "type": "web",
+      "category": "social",
+      "entry": "https://web.telegram.org/a/",
+      "defaultAspect": "9:16",
+      "defaultSize": {
+        "w": 0.48,
+        "h": 0.853
+      },
+      "multiWindow": false,
+      "permissions": [
+        "audio",
+        "microphone"
+      ],
+      "allowedHosts": [
+        "telegram.org",
+        "*.telegram.org",
+        "web.telegram.org"
+      ],
+      "sessionGroup": "telegram",
+      "minEngineVersion": "1.0",
+      "order": 2
+    },
+    {
+      "id": "instagram",
+      "name": {
+        "uz": "Instagram",
+        "en": "Instagram",
+        "ru": "Instagram"
+      },
+      "icon": "📸",
+      "version": "1.0.0",
+      "type": "web",
+      "category": "social",
+      "entry": "https://www.instagram.com",
+      "defaultAspect": "9:16",
+      "defaultSize": {
+        "w": 0.48,
+        "h": 0.853
+      },
+      "multiWindow": false,
+      "permissions": [
+        "audio",
+        "camera",
+        "microphone"
+      ],
+      "allowedHosts": [
+        "instagram.com",
+        "*.instagram.com",
+        "cdninstagram.com",
+        "facebook.com"
+      ],
+      "sessionGroup": "meta",
+      "minEngineVersion": "1.0",
+      "order": 3
+    },
+    {
+      "id": "spotify",
+      "name": {
+        "uz": "Spotify",
+        "en": "Spotify",
+        "ru": "Spotify"
+      },
+      "icon": "🎵",
+      "version": "1.0.0",
+      "type": "web",
+      "category": "media",
+      "entry": "https://open.spotify.com",
+      "defaultAspect": "16:9",
+      "defaultSize": {
+        "w": 1.05,
+        "h": 0.59
+      },
+      "multiWindow": false,
+      "permissions": [
+        "audio"
+      ],
+      "allowedHosts": [
+        "spotify.com",
+        "*.spotify.com",
+        "scdn.co",
+        "spotifycdn.com"
+      ],
+      "sessionGroup": "spotify",
+      "minEngineVersion": "1.0",
+      "order": 4
+    },
+    {
+      "id": "google",
+      "name": {
+        "uz": "Google Brauzer",
+        "en": "Google Browser",
+        "ru": "Google Браузер"
+      },
+      "icon": "🌐",
+      "version": "1.0.0",
+      "type": "web",
+      "category": "tools",
+      "entry": "https://www.google.com",
+      "defaultAspect": "16:9",
+      "defaultSize": {
+        "w": 1.1,
+        "h": 0.619
+      },
+      "multiWindow": true,
+      "permissions": [
+        "audio",
+        "camera",
+        "microphone"
+      ],
+      "allowedHosts": [
+        "*"
+      ],
+      "sessionGroup": "google",
+      "minEngineVersion": "1.0",
+      "order": 5
+    },
+    {
+      "id": "camera",
+      "name": {
+        "uz": "Kamera",
+        "en": "Camera",
+        "ru": "Камера"
+      },
+      "icon": "📷",
+      "version": "1.0.0",
+      "type": "native",
+      "category": "tools",
+      "entry": "uz.orbitx.arport.engine.apps.CameraApp",
+      "defaultAspect": "16:9",
+      "defaultSize": {
+        "w": 1.0,
+        "h": 0.5625
+      },
+      "multiWindow": false,
+      "permissions": [
+        "camera",
+        "microphone"
+      ],
+      "allowedHosts": [],
+      "sessionGroup": "system",
+      "minEngineVersion": "1.0",
+      "order": 6
+    },
+    {
+      "id": "notes",
+      "name": {
+        "uz": "Qaydlar",
+        "en": "Notes",
+        "ru": "Заметки"
+      },
+      "icon": "📝",
+      "version": "1.0.0",
+      "type": "native",
+      "category": "tools",
+      "entry": "uz.orbitx.arport.engine.apps.NotesApp",
+      "defaultAspect": "9:16",
+      "defaultSize": {
+        "w": 0.45,
+        "h": 0.8
+      },
+      "multiWindow": false,
+      "permissions": [],
+      "allowedHosts": [],
+      "sessionGroup": "system",
+      "minEngineVersion": "1.0",
+      "order": 7
+    },
+    {
+      "id": "clock",
+      "name": {
+        "uz": "Soat",
+        "en": "Clock",
+        "ru": "Часы"
+      },
+      "icon": "⏱️",
+      "version": "1.0.0",
+      "type": "native",
+      "category": "tools",
+      "entry": "uz.orbitx.arport.engine.apps.ClockApp",
+      "defaultAspect": "16:9",
+      "defaultSize": {
+        "w": 0.85,
+        "h": 0.478
+      },
+      "multiWindow": false,
+      "permissions": [
+        "audio"
+      ],
+      "allowedHosts": [],
+      "sessionGroup": "system",
+      "minEngineVersion": "1.0",
+      "order": 8
+    },
+    {
+      "id": "calendar",
+      "name": {
+        "uz": "Kalendar",
+        "en": "Calendar",
+        "ru": "Календарь"
+      },
+      "icon": "📅",
+      "version": "1.0.0",
+      "type": "native",
+      "category": "tools",
+      "entry": "uz.orbitx.arport.engine.apps.CalendarApp",
+      "defaultAspect": "16:9",
+      "defaultSize": {
+        "w": 0.95,
+        "h": 0.534
+      },
+      "multiWindow": false,
+      "permissions": [],
+      "allowedHosts": [],
+      "sessionGroup": "system",
+      "minEngineVersion": "1.0",
+      "order": 9
+    },
+    {
+      "id": "settings",
+      "name": {
+        "uz": "AR Sozlamalar",
+        "en": "AR Settings",
+        "ru": "AR Настройки"
+      },
+      "icon": "⚙️",
+      "version": "1.0.0",
+      "type": "native",
+      "category": "system",
+      "entry": "uz.orbitx.arport.engine.apps.SettingsApp",
+      "defaultAspect": "16:9",
+      "defaultSize": {
+        "w": 1.05,
+        "h": 0.59
+      },
+      "multiWindow": false,
+      "permissions": [],
+      "allowedHosts": [],
+      "sessionGroup": "system",
+      "minEngineVersion": "1.0",
+      "order": 10
+    },
+    {
+      "id": "tetris",
+      "name": {
+        "uz": "Tetris",
+        "en": "Tetris",
+        "ru": "Тетрис"
+      },
+      "icon": "🕹️",
+      "version": "1.0.0",
+      "type": "game2d",
+      "category": "games",
+      "entry": "assets/games/tetris/index.html",
+      "defaultAspect": "9:16",
+      "defaultSize": {
+        "w": 0.45,
+        "h": 0.8
+      },
+      "multiWindow": false,
+      "permissions": [
+        "audio"
+      ],
+      "allowedHosts": [],
+      "sessionGroup": "games",
+      "minEngineVersion": "1.0",
+      "order": 11
+    },
+    {
+      "id": "dino",
+      "name": {
+        "uz": "Dino Yugurish",
+        "en": "Dino Runner",
+        "ru": "Динозаврик"
+      },
+      "icon": "🦖",
+      "version": "1.0.0",
+      "type": "game2d",
+      "category": "games",
+      "entry": "assets/games/dino/index.html",
+      "defaultAspect": "16:9",
+      "defaultSize": {
+        "w": 1.0,
+        "h": 0.5625
+      },
+      "multiWindow": false,
+      "permissions": [
+        "audio"
+      ],
+      "allowedHosts": [],
+      "sessionGroup": "games",
+      "minEngineVersion": "1.0",
+      "order": 12
+    },
+    {
+      "id": "flappy",
+      "name": {
+        "uz": "Flappy Qush",
+        "en": "Flappy Bird",
+        "ru": "Flappy Bird"
+      },
+      "icon": "🐤",
+      "version": "1.0.0",
+      "type": "game2d",
+      "category": "games",
+      "entry": "assets/games/flappy/index.html",
+      "defaultAspect": "9:16",
+      "defaultSize": {
+        "w": 0.45,
+        "h": 0.8
+      },
+      "multiWindow": false,
+      "permissions": [
+        "audio"
+      ],
+      "allowedHosts": [],
+      "sessionGroup": "games",
+      "minEngineVersion": "1.0",
+      "order": 13
+    },
+    {
+      "id": "snake",
+      "name": {
+        "uz": "Iloncha",
+        "en": "Retro Snake",
+        "ru": "Змейка"
+      },
+      "icon": "🐍",
+      "version": "1.0.0",
+      "type": "game2d",
+      "category": "games",
+      "entry": "assets/games/snake/index.html",
+      "defaultAspect": "9:16",
+      "defaultSize": {
+        "w": 0.45,
+        "h": 0.8
+      },
+      "multiWindow": false,
+      "permissions": [
+        "audio"
+      ],
+      "allowedHosts": [],
+      "sessionGroup": "games",
+      "minEngineVersion": "1.0",
+      "order": 14
+    },
+    {
+      "id": "g2048",
+      "name": {
+        "uz": "2048",
+        "en": "2048 Puzzle",
+        "ru": "2048"
+      },
+      "icon": "🔢",
+      "version": "1.0.0",
+      "type": "game2d",
+      "category": "games",
+      "entry": "assets/games/g2048/index.html",
+      "defaultAspect": "9:16",
+      "defaultSize": {
+        "w": 0.45,
+        "h": 0.8
+      },
+      "multiWindow": false,
+      "permissions": [
+        "audio"
+      ],
+      "allowedHosts": [],
+      "sessionGroup": "games",
+      "minEngineVersion": "1.0",
+      "order": 15
+    },
+    {
+      "id": "chess",
+      "name": {
+        "uz": "AR Shaxmat",
+        "en": "AR Chess",
+        "ru": "AR Шахматы"
+      },
+      "icon": "♟️",
+      "version": "1.0.0",
+      "type": "game2d",
+      "category": "games",
+      "entry": "assets/games/chess/index.html",
+      "defaultAspect": "16:9",
+      "defaultSize": {
+        "w": 0.95,
+        "h": 0.534
+      },
+      "multiWindow": false,
+      "permissions": [
+        "audio"
+      ],
+      "allowedHosts": [],
+      "sessionGroup": "games",
+      "minEngineVersion": "1.0",
+      "order": 16
+    },
+    {
+      "id": "pingpong3d",
+      "name": {
+        "uz": "3D Stol Tennisi",
+        "en": "3D Table Tennis",
+        "ru": "3D Настольный Теннис"
+      },
+      "icon": "🏓",
+      "version": "1.0.0",
+      "type": "game3d",
+      "category": "games",
+      "entry": "uz.orbitx.arport.engine.apps.TableTennisApp",
+      "defaultAspect": "16:9",
+      "defaultSize": {
+        "w": 1.2,
+        "h": 0.675
+      },
+      "multiWindow": false,
+      "permissions": [
+        "audio"
+      ],
+      "allowedHosts": [],
+      "sessionGroup": "games",
+      "minEngineVersion": "1.0",
+      "order": 17
+    },
+    {
+      "id": "shooter3d",
+      "name": {
+        "uz": "3D Mergan",
+        "en": "3D Target Shooter",
+        "ru": "3D Стрелок"
+      },
+      "icon": "🎯",
+      "version": "1.0.0",
+      "type": "game3d",
+      "category": "games",
+      "entry": "uz.orbitx.arport.engine.apps.Shooter3DApp",
+      "defaultAspect": "16:9",
+      "defaultSize": {
+        "w": 1.2,
+        "h": 0.675
+      },
+      "multiWindow": false,
+      "permissions": [
+        "audio"
+      ],
+      "allowedHosts": [],
+      "sessionGroup": "games",
+      "minEngineVersion": "1.0",
+      "order": 18
+    }
+  ]
+}
