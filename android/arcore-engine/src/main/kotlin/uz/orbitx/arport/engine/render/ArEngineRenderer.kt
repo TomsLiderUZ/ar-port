@@ -110,6 +110,11 @@ class ArEngineRenderer(
         spatialDock.onDockAction = { action ->
             when (action) {
                 SpatialDockAction.HOME -> toggleHomePanel()
+                SpatialDockAction.PIN -> {
+                    windowManager.activeWindows.find { it.isFocused && it.appId != "spatial_dock" }?.let { focusedWin ->
+                        windowManager.togglePin(focusedWin.id)
+                    }
+                }
                 SpatialDockAction.RECENTER -> recenter()
                 SpatialDockAction.KEYBOARD -> toggleSpatialKeyboard()
                 SpatialDockAction.VOLUME -> onVolumeToggleRequested?.invoke()
@@ -142,7 +147,10 @@ class ArEngineRenderer(
     // Cached matrix buffers for GL thread
     private val projectionMatrix = FloatArray(16)
     private val viewMatrix = FloatArray(16)
+    private val headLockedViewMatrix = FloatArray(16)
     private val vpMatrix = FloatArray(16)
+
+    val roomEnvironment = uz.orbitx.arport.engine.spatial.RoomEnvironmentManager()
 
     private var frameCounter = 0
     private var lastFrameTimeNs: Long = 0
@@ -289,8 +297,13 @@ class ArEngineRenderer(
                 GLES30.glEnable(GLES30.GL_DEPTH_TEST)
                 trackingManager.getViewMatrix(viewMatrix, -eyeOffsetM)
                 Matrix.multiplyMM(vpMatrix, 0, projectionMatrix, 0, viewMatrix, 0)
-                windowRenderer.drawWindows(windowManager, viewMatrix, projectionMatrix, vpMatrix, sharedBlurredBackdropTex, eyeW, eyeH, dtSec)
-                handRenderer.drawHands(visibleHands, windowManager, viewMatrix, projectionMatrix)
+
+                // Static Head-locked view matrix for Left Eye
+                Matrix.setIdentityM(headLockedViewMatrix, 0)
+                Matrix.translateM(headLockedViewMatrix, 0, eyeOffsetM, 0f, 0f)
+
+                windowRenderer.drawWindows(windowManager, viewMatrix, projectionMatrix, vpMatrix, sharedBlurredBackdropTex, eyeW, eyeH, dtSec, headLockedViewMatrix)
+                handRenderer.drawHands(visibleHands, windowManager, headLockedViewMatrix, projectionMatrix)
 
                 // 2. Right Eye Pass
                 stereoRenderer.beginRightEye()
@@ -303,8 +316,13 @@ class ArEngineRenderer(
                 GLES30.glEnable(GLES30.GL_DEPTH_TEST)
                 trackingManager.getViewMatrix(viewMatrix, eyeOffsetM)
                 Matrix.multiplyMM(vpMatrix, 0, projectionMatrix, 0, viewMatrix, 0)
-                windowRenderer.drawWindows(windowManager, viewMatrix, projectionMatrix, vpMatrix, sharedBlurredBackdropTex, eyeW, eyeH, dtSec)
-                handRenderer.drawHands(visibleHands, windowManager, viewMatrix, projectionMatrix)
+
+                // Static Head-locked view matrix for Right Eye
+                Matrix.setIdentityM(headLockedViewMatrix, 0)
+                Matrix.translateM(headLockedViewMatrix, 0, -eyeOffsetM, 0f, 0f)
+
+                windowRenderer.drawWindows(windowManager, viewMatrix, projectionMatrix, vpMatrix, sharedBlurredBackdropTex, eyeW, eyeH, dtSec, headLockedViewMatrix)
+                handRenderer.drawHands(visibleHands, windowManager, headLockedViewMatrix, projectionMatrix)
 
                 // 3. Post-processing Barrel Distortion Pass
                 stereoRenderer.finishAndDistort()
@@ -334,8 +352,9 @@ class ArEngineRenderer(
                 trackingManager.getProjectionMatrix(projectionMatrix, screenWidth, screenHeight, fovYDeg = 65f)
                 trackingManager.getViewMatrix(viewMatrix, 0f)
                 Matrix.multiplyMM(vpMatrix, 0, projectionMatrix, 0, viewMatrix, 0)
-                windowRenderer.drawWindows(windowManager, viewMatrix, projectionMatrix, vpMatrix, blurredTex, screenWidth, screenHeight, dtSec)
-                handRenderer.drawHands(visibleHands, windowManager, viewMatrix, projectionMatrix)
+                Matrix.setIdentityM(headLockedViewMatrix, 0)
+                windowRenderer.drawWindows(windowManager, viewMatrix, projectionMatrix, vpMatrix, blurredTex, screenWidth, screenHeight, dtSec, headLockedViewMatrix)
+                handRenderer.drawHands(visibleHands, windowManager, headLockedViewMatrix, projectionMatrix)
             }
         } catch (e: Throwable) {
             android.util.Log.e("ArEngineRenderer", "onDrawFrame render xatoligi: ${e.message}", e)

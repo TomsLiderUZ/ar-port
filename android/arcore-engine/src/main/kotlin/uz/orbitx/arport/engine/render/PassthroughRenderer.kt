@@ -86,8 +86,8 @@ class PassthroughRenderer(
     private var screenWidth: Int = 1920
     private var screenHeight: Int = 1080
 
-    // Standard phone back camera in landscape requires 90° rotation to be upright
-    var cameraRotationDegrees: Int = 90
+    // In VR landscape headset orientation, camera buffer displays upright with 0° rotation
+    var cameraRotationDegrees: Int = 0
         private set
 
     fun onSurfaceCreated() {
@@ -151,8 +151,10 @@ class PassthroughRenderer(
 
         // 1. Move UV origin to center (0.5, 0.5)
         Matrix.translateM(transformMatrix, 0, 0.5f, 0.5f, 0.0f)
-        // 2. Rotate UV around center to make camera upright
-        Matrix.rotateM(transformMatrix, 0, -cameraRotationDegrees.toFloat(), 0.0f, 0.0f, 1.0f)
+        // 2. Rotate UV around center to make camera upright (if non-zero)
+        if (cameraRotationDegrees != 0) {
+            Matrix.rotateM(transformMatrix, 0, -cameraRotationDegrees.toFloat(), 0.0f, 0.0f, 1.0f)
+        }
         // 3. Apply aspect ratio crop scale
         Matrix.scaleM(transformMatrix, 0, scaleX, scaleY, 1.0f)
         // 4. Move UV origin back

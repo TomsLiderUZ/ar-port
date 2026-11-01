@@ -95,7 +95,8 @@ class ArActivity : FragmentActivity() {
     private lateinit var modeToggleButton: TextView
     private lateinit var actionRow: LinearLayout
     private lateinit var cornerExitButton: TextView
-    private var cameraRotationDegrees: Int = 90
+    private var cameraRotationDegrees: Int = 0
+    private val analysisExecutor = java.util.concurrent.Executors.newSingleThreadExecutor()
 
     private val mainHandler = Handler(Looper.getMainLooper())
     private var isHudActive = true
@@ -660,8 +661,9 @@ class ArActivity : FragmentActivity() {
                     arRenderer?.setCameraPreviewSize(width, height)
                 },
                 onRotationDegreesKnown = { rotation ->
-                    cameraRotationDegrees = rotation
-                    arRenderer?.setCameraRotation(rotation)
+                    // User & VR headset requirement: direct 0° unrotated passthrough window
+                    cameraRotationDegrees = 0
+                    arRenderer?.setCameraRotation(0)
                 }
             )
 
@@ -674,7 +676,7 @@ class ArActivity : FragmentActivity() {
                 .build()
 
             handTracker?.let { tracker ->
-                imageAnalysis.setAnalyzer(androidx.core.content.ContextCompat.getMainExecutor(this), tracker)
+                imageAnalysis.setAnalyzer(analysisExecutor, tracker)
             }
             cm.imageAnalysis = imageAnalysis
 
@@ -695,8 +697,13 @@ class ArActivity : FragmentActivity() {
                 val modeLabel = if (viewMode == "stereo") "Stereo (IPD: ${ipdMm.toInt()}mm)" else "Oddiy"
 
                 val handFps = handTracker?.fpsTracker?.getFps() ?: 0f
-                val handCount = handTracker?.getVisibleHands()?.size ?: 0
-                val handStatus = if (handCount > 0) "$handCount qo'l (${handFps.toInt()} FPS)" else "Qo'l yo'q"
+                val visibleHands = handTracker?.getVisibleHands() ?: emptyList()
+                val handCount = visibleHands.size
+                val handStatus = when (handCount) {
+                    0 -> "Qo'l yo'q"
+                    1 -> if (visibleHands[0].isRightHand) "1 ta (O'ng)" else "1 ta (Chap)"
+                    else -> "2 ta (Chap + O'ng)"
+                }
                 val gestureStatus = arRenderer?.lastGestureLabel ?: "Kutilmoqda"
 
                 val hudText = String.format(
@@ -996,6 +1003,7 @@ class ArActivity : FragmentActivity() {
         isHudActive = false
         mainHandler.removeCallbacksAndMessages(null)
         try {
+            analysisExecutor.shutdown()
             trackingManager?.stop()
             handTracker?.release()
             thermalMonitor?.release()

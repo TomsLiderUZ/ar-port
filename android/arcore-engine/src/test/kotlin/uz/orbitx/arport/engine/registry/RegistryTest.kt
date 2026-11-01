@@ -105,12 +105,13 @@ class RegistryTest {
     fun testSpatialDockHitTesting() {
         val dock = SpatialDock()
 
-        // 6 buttons: HOME, RECENTER, VOLUME, BRIGHTNESS, KEYBOARD, EXIT
+        // 7 buttons: HOME, PIN, RECENTER, VOLUME, BRIGHTNESS, KEYBOARD, EXIT
         assertEquals(SpatialDockAction.HOME, dock.hitTest(0.05f, 0.5f))
-        assertEquals(SpatialDockAction.RECENTER, dock.hitTest(0.20f, 0.5f))
-        assertEquals(SpatialDockAction.VOLUME, dock.hitTest(0.38f, 0.5f))
-        assertEquals(SpatialDockAction.BRIGHTNESS, dock.hitTest(0.55f, 0.5f))
-        assertEquals(SpatialDockAction.KEYBOARD, dock.hitTest(0.72f, 0.5f))
+        assertEquals(SpatialDockAction.PIN, dock.hitTest(0.20f, 0.5f))
+        assertEquals(SpatialDockAction.RECENTER, dock.hitTest(0.35f, 0.5f))
+        assertEquals(SpatialDockAction.VOLUME, dock.hitTest(0.50f, 0.5f))
+        assertEquals(SpatialDockAction.BRIGHTNESS, dock.hitTest(0.64f, 0.5f))
+        assertEquals(SpatialDockAction.KEYBOARD, dock.hitTest(0.78f, 0.5f))
         assertEquals(SpatialDockAction.EXIT, dock.hitTest(0.95f, 0.5f))
 
         var receivedAction: SpatialDockAction? = null

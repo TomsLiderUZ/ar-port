@@ -25,6 +25,10 @@ android {
         versionName = flutter.versionName
     }
 
+    aaptOptions {
+        noCompress += listOf("task", "tflite")
+    }
+
     val keystorePropertiesFile = file("../key.properties")
     val keystoreProperties = Properties()
     if (keystorePropertiesFile.exists()) {

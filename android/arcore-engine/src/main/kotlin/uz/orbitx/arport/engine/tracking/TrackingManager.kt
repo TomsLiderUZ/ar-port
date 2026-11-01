@@ -72,9 +72,9 @@ class TrackingManager(
     private var hasInitialRecenter = false
 
     init {
-        // Find best available rotation sensor
-        rotationVectorSensor = sensorManager?.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR)
-            ?: sensorManager?.getDefaultSensor(Sensor.TYPE_GAME_ROTATION_VECTOR)
+        // Prioritize Game Rotation Vector (Gyroscope + Accelerometer, no magnetic drift) for VR accuracy
+        rotationVectorSensor = sensorManager?.getDefaultSensor(Sensor.TYPE_GAME_ROTATION_VECTOR)
+            ?: sensorManager?.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR)
 
         val capabilities = DeviceEvaluator.assessCapabilities(context)
         val arCoreSupported = capabilities["arCoreStatus"] == "SUPPORTED"

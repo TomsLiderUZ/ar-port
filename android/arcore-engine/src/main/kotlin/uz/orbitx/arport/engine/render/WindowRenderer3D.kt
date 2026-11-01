@@ -3,6 +3,7 @@ package uz.orbitx.arport.engine.render
 import android.opengl.GLES30
 import android.opengl.Matrix
 import uz.orbitx.arport.engine.window.SpatialWindow
+import uz.orbitx.arport.engine.window.WindowState
 import uz.orbitx.arport.engine.window.WindowManager3D
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
@@ -179,7 +180,8 @@ void main() {
         blurredBackdropTexId: Int,
         screenWidth: Int,
         screenHeight: Int,
-        dtSec: Float = 0.016f
+        dtSec: Float = 0.016f,
+        headLockedViewMatrix: FloatArray = viewMatrix
     ) {
         if (programId == 0) return
 
@@ -245,8 +247,11 @@ void main() {
                 GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, surface.textureId)
             }
 
-            // Compute MVP Matrix = Projection * View * WindowModel
-            Matrix.multiplyMM(tempMatrix, 0, viewMatrix, 0, window.getModelMatrix(), 0)
+            // Compute MVP Matrix based on window pin state:
+            // PINNED -> world viewMatrix (tracked with gyroscope in physical room)
+            // NORMAL -> headLockedViewMatrix (static/screen-locked in front of eyes)
+            val activeViewMatrix = if (window.state == WindowState.PINNED) viewMatrix else headLockedViewMatrix
+            Matrix.multiplyMM(tempMatrix, 0, activeViewMatrix, 0, window.getModelMatrix(), 0)
             Matrix.multiplyMM(mvpMatrix, 0, projectionMatrix, 0, tempMatrix, 0)
             GLES30.glUniformMatrix4fv(uMVPMatrixLoc, 1, false, mvpMatrix, 0)
             GLES30.glUniform1f(uScaleLoc, currentScale)

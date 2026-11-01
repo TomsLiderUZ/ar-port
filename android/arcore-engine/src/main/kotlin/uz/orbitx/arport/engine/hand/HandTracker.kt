@@ -51,18 +51,27 @@ class HandTracker(
     private fun setupHandLandmarker() {
         executor.execute {
             try {
-                // Initialize MediaPipe with robust CPU delegate (XNNPACK) to ensure 100% stability across all chipsets
+                // Ensure model file is extracted uncompressed to physical cache storage for guaranteed mmap
+                val modelFile = java.io.File(context.cacheDir, "hand_landmarker.task")
+                if (!modelFile.exists() || modelFile.length() < 100_000) {
+                    context.assets.open("models/hand_landmarker.task").use { input ->
+                        java.io.FileOutputStream(modelFile).use { output ->
+                            input.copyTo(output)
+                        }
+                    }
+                }
+
                 val baseOptions = BaseOptions.builder()
-                    .setModelAssetPath("models/hand_landmarker.task")
+                    .setModelAssetPath(modelFile.absolutePath)
                     .setDelegate(Delegate.CPU)
                     .build()
                 val options = HandLandmarker.HandLandmarkerOptions.builder()
                     .setBaseOptions(baseOptions)
                     .setRunningMode(RunningMode.LIVE_STREAM)
                     .setNumHands(2)
-                    .setMinHandDetectionConfidence(0.35f)
-                    .setMinHandPresenceConfidence(0.35f)
-                    .setMinTrackingConfidence(0.35f)
+                    .setMinHandDetectionConfidence(0.30f)
+                    .setMinHandPresenceConfidence(0.30f)
+                    .setMinTrackingConfidence(0.30f)
                     .setResultListener { result, _ ->
                         processResult(result)
                     }
@@ -72,7 +81,7 @@ class HandTracker(
                     .build()
                 handLandmarker = HandLandmarker.createFromOptions(context, options)
                 isInitialized = true
-                Log.i("HandTracker", "MediaPipe HandLandmarker initialized successfully with CPU delegate.")
+                Log.i("HandTracker", "MediaPipe HandLandmarker initialized successfully from ${modelFile.absolutePath}")
             } catch (e: Throwable) {
                 Log.e("HandTracker", "Failed to initialize MediaPipe HandLandmarker: ${e.message}", e)
             }

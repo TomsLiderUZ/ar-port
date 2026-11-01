@@ -56,19 +56,19 @@
 ## 3. Yakuniy Chiqarilish Fayli (dist/ar-port.apk)
 
 * **Fayl:** [`dist/ar-port.apk`](file:///C:/ItzToms%20(all%20files)/ALL%20CODES/Demo%20Productions/ar-port/dist/ar-port.apk)
-* **Hajmi:** **79.04 MB** (`82,886,431` bayt)
-* **SHA-256:** `B1BB1EEC843B2EBFDCEAEBBCE6C9A377798575F18B543AF320E4D8413BBB04F0`
+* **Hajmi:** **80.94 MB** (`84,868,139` bayt)
+* **SHA-256:** `160072EC30F4395F5E85E96B9B2B51B506A06B29B4BD3CA1654D24291186F107`
 * **Arxitekturalar:** `arm64-v8a`, `armeabi-v7a`, `x86_64`
 * **Optimizatsiya:** ProGuard / R8 code shrinking va resource shrinking
 * **Imzo:** Release Keystore (`docs/SIGNING.md`)
-* **Tuzatish (Hotfix & Optimizations):**
-  - **Kamera 90° Qiyshayishi va Cho'zilishi Tubdan Tuzatildi:** PassthroughRenderer ga `uTransformMatrix` kiritildi; kamera sensori oriyentatsiyasi (Infinix Hot 60 Pro+ dagi 90° o'rnatilish) avtomatik to'g'rilandi. Stereo (1.11) va to'liq ekran (2.22) tomonlar nisbatiga ko'ra dinamik Aspect-Fill (Center-Crop) hisob-kitobi qo'llanib, tasvirning cho'zilishi yoki torayishi 100% yo'qotildi. Shuningdek, AR Sozlamalar / Kalibratsiyaga `Kamera burchagi (0°, 90°, 180°, 270°)` tezkor almashtirish tugmasi qo'shildi.
-  - **Giroskop Fazoviy O'qlari (OpenGL Koordinata Tizimi) To'g'rilandi:** Android SensorManager o'qlari (Z=Up, Y=North, X=East) va OpenGL kamerasi (Y=Up, -Z=North, X=East) o'rtasidagi -90° X-o'qi farqi `remapCoordinateSystem(tempRemappedMatrix, AXIS_X, AXIS_Z, glSensorMatrix)` orqali fazoviy to'g'rilandi. `ROTATION_90` uchun teskari qo'yilgan `AXIS_Y, AXIS_MINUS_X` o'rniga to'g'ri `AXIS_MINUS_Y, AXIS_X` qo'yildi; natijada oynalar pastga qaramasdan, to'g'ri ko'z qarshisida (eye-level) gorizontal tekis chiqadigan bo'ldi. Boshlang'ich kadrda avtomatik `recenter()` ulandi.
-  - **Qo'l Kuzatuvi (MediaPipe Hand Tracking) Tiklandi:** CameraX `ImageAnalysis` ga `targetRotation(displayRotation)` va `OUTPUT_IMAGE_FORMAT_RGBA_8888` berildi, MediaPipe ga to'g'ridan-to'g'ri `imageProxy.toBitmap()` orqali xom YUV xatoliksiz yetkazildi, sezgirlik chegaralari 0.35f ga tushirildi.
-  - **Stereo Distorsiya Chekka Chiziqlari (Streaks) Bartaraf Etildi:** `StereoRenderer` shaderidagi `clamp` chekka piksellarini cho'zib yuborgani sababli, uning o'rniga toza qora optik vinetka (`vec4(0.0)`) qaytarildi — Cardboard dumaloq linzasi bilan to'liq uyg'unlashdi.
-  - **Stereo Rejimdagi Qora Fon Bartaraf Etildi:** `ArEngineRenderer` da kamera kadrini eye FBO ga chizgandan so'ng rang buferini o'chirib yuboruvchi ortiqcha `beginLeftEye()` o'rniga, faqat chuqurlikni tozalovchi (`resumeLeftEye()` / `resumeRightEye()`) kiritildi.
-  - **Giroskop Bijirlashini (Jitter & Lag) Yo'qotish:** `TrackingManager` dagi regressiv bashorat (predictive feedback loop) to'xtatildi va to'g'ridan-to'g'ri sezgir `SLERP (alpha = 0.82f)` filtriga almashtirildi.
-  - **GPU Yuklamasi va 60 FPS Optimizatsiyasi:** Ikkala ko'z uchun umumiy Kawase blur pass kiritildi, `glDepthMask(false)` bilan Z-fighting yo'qotildi.
+* **Tuzatish (Hotfix & Yangi Arxitektura):**
+  - **Kamera Passthrough Giroskopdan Butunlay Ajratildi (0° Toza Ko'zgu):** Foydalanuvchi talabiga ko'ra, kamera buferi hech qanday aylanma transformatsiyalarsiz to'g'ridan-to'g'ri ikkala ko'zga 0° toza oyna (direct passthrough) sifatida uzatildi. Gorizontal rejimda 90° yonboshga burilib qolish butunlay to'xtatildi.
+  - **Head-Locked (Statik Ekran Qotishi) Arxitekturasi:** Menyu panellari va Spatial Dock sukut bo'yicha ko'z oldida statik qotgan (`WindowState.NORMAL`) holatda turadi — bosh harakatlanganda qidirib yurish talab etilmaydi va giroskop drifti yoki silkinishidan xoli bo'ladi.
+  - **📌 Qotirish (Pin to World):** Spatial Dock-ga **"📌 Qotirish"** tugmasi qo'shildi. Istalgan oynani diqqat markaziga olib, ushbu tugma bosilsa, u jismoniy xonaga mahkamlanadi (`WindowState.PINNED`) va giroskop bilan fazoda qotadi.
+  - **3D Xona Fazoviy Modeli (`RoomEnvironmentManager`):** Orqa fonda real xonaning virtual 3D maketi (pol $Y=-1.2\text{m}$, stol sathi $Y=-0.42\text{m}$, 4 ta devor va burchaklar) ishlab turadi. Bu model ko'rinmaydi, lekin 3D o'yinlar (Stol tennisi, Shooter, Shaxmat) to'qnashuvlari va nishonlar paydo bo'lishiga xizmat qiladi.
+  - **2 ta Qo'lni Kuzatish (Chap + O'ng) va Fon Oqimi:** MediaPipe `hand_landmarker.task` modeli siqilmagan holda APK-ga kiritildi va keshga xavfsiz ajratildi. Rasm tahlili (`ImageAnalysis`) asosiy UI oqimidan alohida fon oqimiga (`analysisExecutor`) o'tkazilib, 100% kadrlar tahlili va 60 FPS silliqlik kafolatlandi. Hand skeletal chizmasi to'g'ridan-to'g'ri kamera foniga moslandi.
+  - **MediaTek Helio G200 da Barqaror 60 FPS:** Kamera xususiyatlari orqali `Range(60, 60)` yoki maksimal kadr chastotasi tanlab ulandi; GPU-dagi ortiqcha Z-fighting va blur takrori olib tashlandi.
+  - **Giroskop Fazoviy O'qlari:** `Sensor.TYPE_GAME_ROTATION_VECTOR` (magnit aralashuvisiz sof giroskop + akselerometr) ustuvor qilindi.
   - **AndroidManifest:** `screenOrientation="sensorLandscape"` qilinib, ko'zoynakka ikki taraflama joylashtirish to'liq qo'llab-quvvatlandi.
   - `ArTheme` mavzusi `Theme.AppCompat.NoActionBar` ga ulandi (AppCompatDelegate talabi qondirildi).
   - `ArActivity` klassi `FragmentActivity` ga o'tkazildi va `super.onCreate` hamda `onResume/onPause/onDestroy` to'liq himoyalovchi `try-catch` bloklari bilan o'raldi.

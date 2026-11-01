@@ -93,12 +93,26 @@ class PassthroughCameraManager(
             CaptureRequest.CONTROL_VIDEO_STABILIZATION_MODE,
             CaptureRequest.CONTROL_VIDEO_STABILIZATION_MODE_OFF
         )
-        // Target FPS range
-        val fpsRange = if (targetFps >= 60) Range(30, 60) else Range(15, 30)
+        // Target FPS range: query camera characteristics to lock solid 60 FPS if supported
+        val cManager = context.getSystemService(Context.CAMERA_SERVICE) as? android.hardware.camera2.CameraManager
+        val characteristics = try {
+            cManager?.getCameraCharacteristics(cameraId)
+        } catch (_: Exception) { null }
+        val availableRanges = characteristics?.get(android.hardware.camera2.CameraCharacteristics.CONTROL_AE_AVAILABLE_TARGET_FPS_RANGES)
+
+        val fpsRange = if (targetFps >= 60) {
+            availableRanges?.find { it.lower >= 60 && it.upper >= 60 }
+                ?: availableRanges?.find { it.upper >= 60 }
+                ?: Range(30, 60)
+        } else {
+            availableRanges?.find { it.upper == 30 }
+                ?: Range(15, 30)
+        }
         camera2Extender.setCaptureRequestOption(
             CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE,
             fpsRange
         )
+        Log.i(TAG, "Selected Camera AE Target FPS Range: $fpsRange")
 
         preview = previewBuilder.build()
 

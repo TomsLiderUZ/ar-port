@@ -130,6 +130,11 @@ class AppRegistry(private val context: Context? = null) {
             aspect = aspect
         )
 
+        // 3D games anchor in physical room space (World-locked)
+        if (manifest.type == "game3d" || manifest.id == "chess") {
+            window.state = uz.orbitx.arport.engine.window.WindowState.PINNED
+        }
+
         val isPortrait = (aspect == WindowAspect.LOCKED_9_16)
         val surfW = if (isPortrait) 720 else 1280
         val surfH = if (isPortrait) 1280 else 720

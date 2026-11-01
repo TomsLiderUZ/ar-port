@@ -10,6 +10,7 @@ import uz.orbitx.arport.engine.window.WindowAspect
 
 enum class SpatialDockAction {
     HOME,
+    PIN,
     RECENTER,
     VOLUME,
     BRIGHTNESS,
@@ -25,7 +26,7 @@ data class DockButton(
 
 /**
  * Vision Pro-inspired 3D floating bottom dock providing instant access to
- * Home launcher, Recenter, Volume, Brightness, Spatial Keyboard, and Exit AR.
+ * Home launcher, Pin/Unpin, Recenter, Volume, Brightness, Spatial Keyboard, and Exit AR.
  */
 class SpatialDock {
 
@@ -42,6 +43,7 @@ class SpatialDock {
 
         val DOCK_BUTTONS = listOf(
             DockButton(SpatialDockAction.HOME, "🏠", "Home"),
+            DockButton(SpatialDockAction.PIN, "📌", "Qotirish"),
             DockButton(SpatialDockAction.RECENTER, "🎯", "Markaz"),
             DockButton(SpatialDockAction.VOLUME, "🔊", "Ovoz"),
             DockButton(SpatialDockAction.BRIGHTNESS, "☀️", "Yorug'lik"),

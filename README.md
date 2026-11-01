@@ -10,7 +10,7 @@
 * **Joylashuvi:** [`dist/ar-port.apk`](file:///C:/ItzToms%20(all%20files)/ALL%20CODES/Demo%20Productions/ar-port/dist/ar-port.apk)
 * **Paket ID:** `uz.orbitx.arport`
 * **Versiya:** `1.0.0` (Build `1`)
-* **Hajmi:** **79.04 MB** (`82,886,431` bayt)
+* **Hajmi:** **80.94 MB** (`84,868,139` bayt)
 * **Target ABI:** `arm64-v8a` (+ `armeabi-v7a`, `x86_64`)
 * **Minimal Android talabi:** Android 10 (API 29) yoki undan yuqori
 * **Majburiy datchik:** Giroskop (Gyroscope sensor)
@@ -18,7 +18,7 @@
 
 ### 🔐 SHA-256 Nazorat Summasi (Checksum)
 ```text
-B1BB1EEC843B2EBFDCEAEBBCE6C9A377798575F18B543AF320E4D8413BBB04F0
+160072EC30F4395F5E85E96B9B2B51B506A06B29B4BD3CA1654D24291186F107
 ```
 
 ---
@@ -49,7 +49,12 @@ B1BB1EEC843B2EBFDCEAEBBCE6C9A377798575F18B543AF320E4D8413BBB04F0
    - **Kamera ruxsati:** Kamera oqimiga ruxsat bering.
 3. **"AR ni ishga tushirish"** tugmasini bosing va telefonni Cardboard ko'zoynagiga joylashtiring.
 
-### ✋ Qo'l Imo-ishoralari (Spatial Gestures):
+### ✋ Qo'l Imo-ishoralari va Fazoviy Boshqaruv (Spatial Control):
+* **0° Toza Passthrough Ko'zgu:** Kamera giroskopga ulanmagan holda, 2 ta ko'zga 0° to'g'ridan-to'g'ri (direct passthrough) uzatiladi.
+* **Ko'z Oldida Qotgan Statik Oynalar (Head-Locked HUD):** Asosiy menyu va Dock ko'z oldida statik qotgan holda turadi — bosh harakatlanganda qidirib yurish talab etilmaydi.
+* **📌 Qotirish (Pin to World):** Dock-dagi yangi **📌 Qotirish** tugmasi orqali fokusdagi oynani jismoniy xona koordinatasiga mahkamlab qo'yish mumkin (World-Locked).
+* **3D Xona Fazoviy Modeli (Room Mesh):** Orqa fonda ko'rinmas 3D pol, stol va devorlar maketi ishlab turadi; 3D o'yinlar (Stol tennisi, Shooter) to'qnashuvlari va nishonlar paydo bo'lishini ta'minlaydi.
+* **Ikkala Qo'lni Kuzatish (Chap + O'ng):** MediaPipe orqali ikkala qo'lning 21 ta bo'g'ini fon oqimida (CPU XNNPACK) 60 FPS da kechikishsiz kuzatiladi.
 * **Lazer nuri (Hand Ray):** Ko'rsatkich barmog'ingiz bilan fazodagi oynalar yoki elementlarga yo'naltiring.
 * **Chimchilash (Pinch Tap):** Bosh barmoq va ko'rsatkich barmoq uchlarini tekkizib bosing (tanlash/bosish).
 * **Suzib yurish (Drag):** Chimchilab ushlagan holda qo'lni fazoda siljiting (oynani surish).

@@ -130,6 +130,20 @@ class WindowManager3D(
         }
     }
 
+    /**
+     * Toggles between Head-locked (Screen HUD) and World-locked (Pinned to Room).
+     */
+    fun togglePin(windowId: String) {
+        synchronized(lock) {
+            val win = windows.find { it.id == windowId } ?: return
+            if (win.state == WindowState.PINNED) {
+                win.state = WindowState.NORMAL
+            } else {
+                win.state = WindowState.PINNED
+            }
+        }
+    }
+
     fun restoreWindow(windowId: String) {
         synchronized(lock) {
             val win = windows.find { it.id == windowId }
